@@ -77,19 +77,45 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "VÉRTICE — Sapatos Masculinos" },
+      {
+        name: "description",
+        content:
+          "Calçadaria masculina de precisão. Sapatos sociais, casuais, botas e tênis em couro de curtume vegetal, feitos para durar décadas.",
+      },
+      { name: "author", content: "VÉRTICE Calçado" },
+      { property: "og:title", content: "VÉRTICE — Sapatos Masculinos" },
+      {
+        property: "og:description",
+        content:
+          "Sapatos masculinos cortados à mão, em couro de curtume vegetal. Feitos para durar décadas.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "VÉRTICE — Sapatos Masculinos" },
+      {
+        name: "twitter:description",
+        content:
+          "Sapatos masculinos cortados à mão, em couro de curtume vegetal. Feitos para durar décadas.",
+      },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "preconnect",
+        href: "https://fonts.googleapis.com",
+      },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
