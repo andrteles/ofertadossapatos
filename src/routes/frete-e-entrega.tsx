@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/frete-e-entrega")({
   head: () => ({
-    meta: [{ title: "Frete e entrega — Outlet" }],
+    meta: [{ title: "Outlet" }],
   }),
   component: FreteEEntregaPage,
 });

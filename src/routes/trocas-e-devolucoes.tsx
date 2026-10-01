@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/trocas-e-devolucoes")({
   head: () => ({
-    meta: [{ title: "Trocas e devoluções — Outlet" }],
+    meta: [{ title: "Outlet" }],
   }),
   component: TrocasEDevolucoesPage,
 });

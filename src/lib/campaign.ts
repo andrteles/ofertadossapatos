@@ -109,39 +109,71 @@ function readClickIdFromUrl(): Omit<CheckAdClickInput, "secret"> | null {
   return null;
 }
 
-/** true só para quem clicou de verdade num anúncio (TikTok Ads ou Meta Ads,
- * nessa ordem de prioridade — únicas plataformas usadas) — nunca para
- * tráfego orgânico/direto, e nunca duas vezes para o mesmo clique, mesmo que
- * o link com os mesmos parâmetros seja encaminhado ou reaberto depois. */
-export function useCampaignLogo(): boolean {
-  const [show, setShow] = useState(false);
+// Várias partes da página (header, grade de produtos da home, da listagem e
+// da página de produto) chamam useCampaignLogo() ao mesmo tempo no primeiro
+// carregamento. Cada uma tentando registrar o click ID por conta própria
+// faria a maioria perder a corrida contra o INSERT da primeira (o banco só
+// deixa UMA ganhar) e ficar presa em "false" até a próxima montagem — era
+// por isso que o nome da marca nos cards só aparecia depois de visitar um
+// produto e voltar, mesmo com a logo do header já visível. Resolvendo a
+// checagem uma única vez por carregamento de página e compartilhando o
+// mesmo resultado entre todos os chamadores evita essa corrida.
+let resolved: boolean | null = null;
+let pending: Promise<boolean> | null = null;
 
-  useEffect(() => {
+async function resolveCampaignLogo(): Promise<boolean> {
+  if (resolved !== null) return resolved;
+  if (pending) return pending;
+
+  pending = (async () => {
     try {
-      if (sessionStorage.getItem(SESSION_KEY) === "1") {
-        setShow(true);
-        return;
-      }
+      if (sessionStorage.getItem(SESSION_KEY) === "1") return true;
     } catch {
       // sessionStorage indisponível (ex.: modo privado) — segue sem cache
     }
 
     const click = readClickIdFromUrl();
-    if (!click) return;
-    const secret = new URLSearchParams(window.location.search).get(SECRET_PARAM);
-    if (!secret) return;
+    const secret = click ? new URLSearchParams(window.location.search).get(SECRET_PARAM) : null;
+    if (!click || !secret) return false;
 
-    checkAdClick({ data: { ...click, secret } })
-      .then((result) => {
-        if (!result.firstSeen) return;
-        setShow(true);
-        try {
-          sessionStorage.setItem(SESSION_KEY, "1");
-        } catch {
-          // sem sessionStorage, a logo só fica visível nesta navegação
-        }
-      })
-      .catch(() => {});
+    const show = await checkAdClick({ data: { ...click, secret } })
+      .then((result) => result.firstSeen)
+      .catch(() => false);
+
+    if (show) {
+      try {
+        sessionStorage.setItem(SESSION_KEY, "1");
+      } catch {
+        // sem sessionStorage, a logo só fica visível nesta navegação
+      }
+    }
+    return show;
+  })();
+
+  resolved = await pending;
+  pending = null;
+  return resolved;
+}
+
+/** true só para quem clicou de verdade num anúncio (TikTok Ads ou Meta Ads,
+ * nessa ordem de prioridade — únicas plataformas usadas) — nunca para
+ * tráfego orgânico/direto, e nunca duas vezes para o mesmo clique, mesmo que
+ * o link com os mesmos parâmetros seja encaminhado ou reaberto depois. */
+export function useCampaignLogo(): boolean {
+  const [show, setShow] = useState(resolved ?? false);
+
+  useEffect(() => {
+    if (resolved !== null) {
+      setShow(resolved);
+      return;
+    }
+    let active = true;
+    resolveCampaignLogo().then((result) => {
+      if (active) setShow(result);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return show;

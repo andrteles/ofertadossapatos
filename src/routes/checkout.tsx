@@ -48,7 +48,7 @@ import { trackMetaPixelEvent, trackPixelEvent, trackTikTokEvent } from "@/lib/tr
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "Finalizar Compra | Outlet" },
+      { title: "Outlet" },
       // Igual à referência: sem zoom automático do iOS ao focar os campos.
       {
         name: "viewport",

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/politica-de-privacidade")({
   head: () => ({
-    meta: [{ title: "Política de privacidade — Outlet" }],
+    meta: [{ title: "Outlet" }],
   }),
   component: PoliticaDePrivacidadePage,
 });

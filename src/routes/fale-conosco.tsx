@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/fale-conosco")({
   head: () => ({
-    meta: [{ title: "Fale conosco — Outlet" }],
+    meta: [{ title: "Outlet" }],
   }),
   component: FaleConoscoPage,
 });

@@ -13,12 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatPrice } from "@/lib/format";
-import {
-  getOrdersAuthState,
-  listOrders,
-  markOrderDispatched,
-  type OrderListItem,
-} from "@/lib/orders-admin";
+import { getOrdersAuthState, listOrders, type OrderListItem } from "@/lib/orders-admin";
 import { loginPixel, logoutPixel } from "@/lib/pixel-settings";
 
 export const Route = createFileRoute("/pedidos")({
@@ -28,7 +23,7 @@ export const Route = createFileRoute("/pedidos")({
     const orders = await listOrders();
     return { ...auth, orders };
   },
-  head: () => ({ meta: [{ title: "Pedidos — Outlet" }] }),
+  head: () => ({ meta: [{ title: "Outlet" }] }),
   component: PedidosPage,
 });
 
@@ -55,7 +50,7 @@ function PedidosPage() {
 
   if (!data.hasPassword) {
     return (
-      <PedidosShell title="Pedidos">
+      <PedidosAuthShell title="Pedidos">
         <p className="text-sm text-muted-foreground">
           Nenhuma senha configurada ainda. Defina uma senha em{" "}
           <Link to="/pixel" className="font-medium text-foreground underline underline-offset-2">
@@ -63,15 +58,15 @@ function PedidosPage() {
           </Link>{" "}
           primeiro.
         </p>
-      </PedidosShell>
+      </PedidosAuthShell>
     );
   }
 
   if (!data.authenticated) {
     return (
-      <PedidosShell title="Pedidos">
+      <PedidosAuthShell title="Pedidos">
         <LoginForm onDone={() => router.invalidate()} />
-      </PedidosShell>
+      </PedidosAuthShell>
     );
   }
 
@@ -85,6 +80,15 @@ function PedidosPage() {
 function PedidosShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+      <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{title}</h1>
+      <div className="mt-8">{children}</div>
+    </div>
+  );
+}
+
+function PedidosAuthShell({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
       <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{title}</h1>
       <div className="mt-8">{children}</div>
     </div>
@@ -116,7 +120,7 @@ function LoginForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-sm flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="password" className="text-sm font-medium text-foreground">
           Senha
@@ -139,32 +143,9 @@ function LoginForm({ onDone }: { onDone: () => void }) {
 }
 
 function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: () => void }) {
-  const router = useRouter();
-  const [dispatchingId, setDispatchingId] = useState<string | null>(null);
-
   async function handleLogout() {
     await logoutPixel();
     onLogout();
-  }
-
-  async function handleDispatch(orderId: string) {
-    setDispatchingId(orderId);
-    let result: Awaited<ReturnType<typeof markOrderDispatched>>;
-    try {
-      result = await markOrderDispatched({ data: { orderId } });
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro de conexão com o servidor. Tente novamente.");
-      setDispatchingId(null);
-      return;
-    }
-    setDispatchingId(null);
-    if (!result.ok) {
-      toast.error("Não foi possível marcar como enviado.");
-      return;
-    }
-    toast.success("Pedido marcado como enviado");
-    router.invalidate();
   }
 
   return (
@@ -191,7 +172,6 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
               <TableHead>Itens</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -222,21 +202,6 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
                       Enviado em {new Date(order.dispatchedAt).toLocaleDateString("pt-BR")}
                     </p>
                   ) : null}
-                </TableCell>
-                <TableCell>
-                  {order.status === "paid" && !order.dispatchedAt ? (
-                    <Button
-                      size="sm"
-                      disabled={dispatchingId === order.id}
-                      onClick={() => handleDispatch(order.id)}
-                    >
-                      {dispatchingId === order.id ? "Salvando..." : "Marcar como enviado"}
-                    </Button>
-                  ) : order.dispatchedAt ? (
-                    <span className="text-xs text-muted-foreground">Enviado</span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
                 </TableCell>
               </TableRow>
             ))}

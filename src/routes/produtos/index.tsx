@@ -27,7 +27,7 @@ export const Route = createFileRoute("/produtos/")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Produtos — Outlet" },
+      { title: "Outlet" },
       {
         name: "description",
         content: "Todos os calçados e artigos de couro Ferracini em promoção.",
