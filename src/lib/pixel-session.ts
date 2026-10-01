@@ -3,7 +3,8 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const COOKIE_NAME = "pixel_session";
 
 function requireSessionSecret(): string {
-  const secret = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  const secret =
+    process.env["STORE_SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_SERVICE_ROLE_KEY"];
   if (!secret) throw new Error("Chave de sessão do pixel não configurada");
   return secret;
 }
