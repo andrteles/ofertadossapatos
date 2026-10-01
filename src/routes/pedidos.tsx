@@ -4,14 +4,6 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { formatPrice } from "@/lib/format";
 import { getOrdersAuthState, listOrders, type OrderListItem } from "@/lib/orders-admin";
 import { loginPixel, logoutPixel } from "@/lib/pixel-settings";
@@ -50,7 +42,7 @@ function PedidosPage() {
 
   if (!data.hasPassword) {
     return (
-      <PedidosAuthShell title="Pedidos">
+      <PedidosShell title="Pedidos">
         <p className="text-sm text-muted-foreground">
           Nenhuma senha configurada ainda. Defina uma senha em{" "}
           <Link to="/pixel" className="font-medium text-foreground underline underline-offset-2">
@@ -58,15 +50,15 @@ function PedidosPage() {
           </Link>{" "}
           primeiro.
         </p>
-      </PedidosAuthShell>
+      </PedidosShell>
     );
   }
 
   if (!data.authenticated) {
     return (
-      <PedidosAuthShell title="Pedidos">
+      <PedidosShell title="Pedidos">
         <LoginForm onDone={() => router.invalidate()} />
-      </PedidosAuthShell>
+      </PedidosShell>
     );
   }
 
@@ -78,15 +70,6 @@ function PedidosPage() {
 }
 
 function PedidosShell({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-      <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{title}</h1>
-      <div className="mt-8">{children}</div>
-    </div>
-  );
-}
-
-function PedidosAuthShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
       <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{title}</h1>
@@ -149,8 +132,42 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
+    <div className="flex flex-col gap-6">
+      {orders.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum pedido ainda.</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {orders.map((order) => (
+            <div key={order.id} className="flex flex-col gap-3 rounded-md border border-input p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">{order.customerName}</p>
+                  {order.customerPhone ? (
+                    <p className="text-xs text-muted-foreground">{order.customerPhone}</p>
+                  ) : null}
+                </div>
+                <Badge variant="outline" className={STATUS_CLASS[order.status] ?? ""}>
+                  {STATUS_LABEL[order.status] ?? order.status}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">{order.address}</p>
+              <div className="text-xs">
+                {order.items.map((item, index) => (
+                  <p key={index}>{item}</p>
+                ))}
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+                <p className="text-xs text-muted-foreground">
+                  {new Date(order.createdAt).toLocaleString("pt-BR")}
+                </p>
+                <p className="text-sm font-medium">{formatPrice(order.amount)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="border-t border-border pt-6">
         <button
           type="button"
           onClick={handleLogout}
@@ -159,55 +176,6 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
           Sair
         </button>
       </div>
-
-      {orders.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhum pedido ainda.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Endereço</TableHead>
-              <TableHead>Itens</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                  {new Date(order.createdAt).toLocaleString("pt-BR")}
-                </TableCell>
-                <TableCell>
-                  <p className="font-medium">{order.customerName}</p>
-                  {order.customerPhone ? (
-                    <p className="text-xs text-muted-foreground">{order.customerPhone}</p>
-                  ) : null}
-                </TableCell>
-                <TableCell className="max-w-xs text-xs">{order.address}</TableCell>
-                <TableCell className="text-xs">
-                  {order.items.map((item, index) => (
-                    <p key={index}>{item}</p>
-                  ))}
-                </TableCell>
-                <TableCell className="font-medium">{formatPrice(order.amount)}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={STATUS_CLASS[order.status] ?? ""}>
-                    {STATUS_LABEL[order.status] ?? order.status}
-                  </Badge>
-                  {order.dispatchedAt ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Enviado em {new Date(order.dispatchedAt).toLocaleDateString("pt-BR")}
-                    </p>
-                  ) : null}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
     </div>
   );
 }

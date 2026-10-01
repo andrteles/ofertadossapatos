@@ -6,3 +6,7 @@ export function formatInstallmentsComJuros(value: number, installments = 12, jur
   const parcela = (value * (1 + juros)) / installments;
   return `${installments}x de ${formatPrice(parcela)}`;
 }
+
+export function isSingleSize(size: string): boolean {
+  return size === "ÚNICO" || size === "UN";
+}

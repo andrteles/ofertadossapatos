@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/store/ProductCard";
 import { Button } from "@/components/ui/button";
 import { useCampaignLogo } from "@/lib/campaign";
 import { useCart } from "@/lib/cart";
-import { formatInstallmentsComJuros, formatPrice } from "@/lib/format";
+import { formatInstallmentsComJuros, formatPrice, isSingleSize } from "@/lib/format";
 import { getProductBySlug, getRelatedProducts, type Product } from "@/lib/products";
 import { trackMetaPixelEvent, trackPixelEvent, trackTikTokEvent } from "@/lib/tracking";
 import { cn } from "@/lib/utils";
@@ -48,7 +48,10 @@ function ProductPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [pickedSize, setSelectedSize] = useState<string | null>(null);
   // Produto de tamanho único: não mostra o seletor, o tamanho já vem escolhido.
-  const onlySize = product.sizes.length === 1 && product.sizes[0] === "ÚNICO" ? "ÚNICO" : null;
+  const onlySize =
+    product.sizes.length === 1 && isSingleSize(product.sizes[0] ?? "")
+      ? (product.sizes[0] ?? null)
+      : null;
   const selectedSize = pickedSize ?? onlySize;
   const [sizeError, setSizeError] = useState(false);
   const [quantity, setQuantity] = useState(1);

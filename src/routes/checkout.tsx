@@ -38,7 +38,7 @@ import {
   type FieldState,
 } from "@/components/zedy-ui";
 import { useCart } from "@/lib/cart";
-import { formatInstallmentsComJuros, formatPrice } from "@/lib/format";
+import { formatInstallmentsComJuros, formatPrice, isSingleSize } from "@/lib/format";
 import { getProductBySlug } from "@/lib/products";
 import { CARD_BRAND_ICONS, detectCardBrand } from "@/lib/card-brands";
 import { createCheckoutOrder, getOrderStatus, isValidCep, isValidDocument } from "@/lib/sagacepay";
@@ -2137,7 +2137,7 @@ function SuccessScreen({ order }: { order: PixOrder }) {
                       ) : null}
                       <div className="min-w-0 flex-1">
                         <div className="flex font-medium text-[#01131A]">{item.title}</div>
-                        {item.size !== "ÚNICO" ? (
+                        {!isSingleSize(item.size) ? (
                           <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
                         ) : null}
                       </div>

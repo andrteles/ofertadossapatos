@@ -4,7 +4,7 @@ import { Loader2, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, isSingleSize } from "@/lib/format";
 import { getProductBySlug } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
@@ -155,7 +155,7 @@ export function CartDrawer() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-sm font-semibold leading-snug">{product.title}</p>
-                          {item.size !== "ÚNICO" ? (
+                          {!isSingleSize(item.size) ? (
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               Tamanho: {item.size}
                             </p>

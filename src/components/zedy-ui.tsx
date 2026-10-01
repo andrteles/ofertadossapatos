@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Info, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCart } from "@/lib/cart";
-import { formatInstallmentsComJuros, formatPrice } from "@/lib/format";
+import { formatInstallmentsComJuros, formatPrice, isSingleSize } from "@/lib/format";
 import { getProductBySlug } from "@/lib/products";
 
 import "@/styles/zedy-checkout.css";
@@ -124,7 +124,7 @@ function SummaryItems({ mobile }: { mobile: boolean }) {
               </span>
               <div className="flex items-start justify-between gap-2 min-h-[1.25rem]">
                 <div className="min-w-0 flex-1 flex flex-col gap-1">
-                  {item.size !== "ÚNICO" ? (
+                  {!isSingleSize(item.size) ? (
                     <span className="text-[11px] text-slate-500">Tam. {item.size}</span>
                   ) : null}
                 </div>

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie } from "@tanstack/react-start/server";
 
+import { isSingleSize } from "@/lib/format";
 import { getPixelAuthState } from "@/lib/pixel-settings";
 import { isValidPixelSessionToken, PIXEL_SESSION_COOKIE } from "@/lib/pixel-session";
 import { getSupabaseAdmin, type SagacepayOrderItem } from "@/lib/supabase-admin";
@@ -58,7 +59,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
       } — ${row["address_neighborhood"]}, ${row["address_city"]}/${row["address_state"]} — CEP ${row["address_cep"]}`,
       items: (row["items"] as SagacepayOrderItem[]).map(
         (item) =>
-          `${item.title} × ${item.quantity}${item.size !== "ÚNICO" ? ` (tam. ${item.size})` : ""}`,
+          `${item.title} × ${item.quantity}${!isSingleSize(item.size) ? ` (tam. ${item.size})` : ""}`,
       ),
       paidAt: row["paid_at"] as string | null,
       dispatchedAt: row["dispatched_at"] as string | null,
