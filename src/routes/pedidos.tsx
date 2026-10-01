@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
 import { getOrdersAuthState, listOrders, type OrderListItem } from "@/lib/orders-admin";
+import { getPageNumbers } from "@/lib/pagination";
 import { loginPixel, logoutPixel } from "@/lib/pixel-settings";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pedidos")({
   loader: async () => {
@@ -175,29 +177,47 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
       )}
 
       {totalPages > 1 ? (
-        <div className="flex items-center justify-between gap-3">
-          <Button
+        <nav
+          aria-label="Paginação"
+          className="flex flex-wrap items-center justify-center gap-1 text-sm"
+        >
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            disabled={currentPage === 1}
             onClick={() => setPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="rounded-md px-3 py-1.5 font-medium hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
           >
             Anterior
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Página {currentPage} de {totalPages}
-          </span>
-          <Button
+          </button>
+          {getPageNumbers(currentPage, totalPages).map((item, index) =>
+            item === "..." ? (
+              <span key={`ellipsis-${index}`} className="px-1.5 text-muted-foreground">
+                …
+              </span>
+            ) : (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setPage(item)}
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full font-medium hover:bg-secondary",
+                  item === currentPage &&
+                    "border-2 border-primary font-bold text-primary hover:bg-transparent",
+                )}
+              >
+                {item}
+              </button>
+            ),
+          )}
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            disabled={currentPage === totalPages}
             onClick={() => setPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="rounded-md px-3 py-1.5 font-medium hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
           >
             Próxima
-          </Button>
-        </div>
+          </button>
+        </nav>
       ) : null}
 
       <div className="border-t border-border pt-6">
