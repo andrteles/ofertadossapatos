@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleCheck,
+  CircleX,
   CreditCard,
   Copy,
   Info,
@@ -429,6 +430,7 @@ const INITIATE_STORAGE_KEY = "outlet-checkout-initiate";
 
 function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
   const { items, totalPrice } = useCart();
+  const { notice: cardNotice, show: showCardUnavailable } = useTimedNotice();
   const [step, setStep] = useState<Step>("personal");
 
   function cartContents() {
@@ -561,12 +563,7 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
       setCardRevealPending(true);
       return;
     }
-    toast.error(
-      "Pagamento com cartão indisponível no momento. Para finalizar sua compra, escolha Pix.",
-      {
-        duration: 6000,
-      },
-    );
+    showCardUnavailable();
   }
 
   async function runCepLookup(value: string) {
@@ -1154,6 +1151,9 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
 
   return (
     <div className="zc" ref={setTooltipContainer}>
+      <NoticeToast state={cardNotice} variant="error">
+        Pagamento com cartão indisponível. Escolha Pix para finalizar.
+      </NoticeToast>
       <DrawerPrimitive.Root open={loading} dismissible={false}>
         <DrawerPrimitive.Portal>
           <DrawerPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80" />
@@ -1747,6 +1747,66 @@ function copyWithSelection(text: string): boolean {
   }
 }
 
+/** Aviso flutuante do checkout (mesmo modelo, tamanho e animação para sucesso e erro): elemento
+ * fixo próprio, não o Toaster do sonner, que no iPhone virava uma barra colada no rodapé.
+ * Centralizado, acima da área segura do iOS. Some sozinho depois de 5s. */
+function useTimedNotice() {
+  const [notice, setNotice] = useState<"off" | "in" | "out">("off");
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  function show() {
+    timers.current.forEach(clearTimeout);
+    setNotice("in");
+    timers.current = [
+      setTimeout(() => setNotice("out"), 5000),
+      setTimeout(() => setNotice("off"), 5150),
+    ];
+  }
+  return { notice, show };
+}
+
+function NoticeToast({
+  state,
+  variant,
+  children,
+}: {
+  state: "off" | "in" | "out";
+  variant: "success" | "error";
+  children: React.ReactNode;
+}) {
+  if (state === "off") return null;
+  const error = variant === "error";
+  const Icon = error ? CircleX : CircleCheck;
+  return (
+    <div
+      role="status"
+      data-state={state === "in" ? "open" : "closed"}
+      className={cn(
+        "pix-copy-toast pointer-events-none z-[100] flex w-[calc(100%-2rem)] max-w-md items-center justify-center gap-3 overflow-hidden rounded-[12px] border py-4 pr-6 pl-4 shadow-lg",
+        error ? "border-[#f0b4b4] bg-[#fcd7d7]" : "border-[#bde8a3] bg-[#d7f8c2]",
+      )}
+    >
+      <div className="grid gap-1">
+        <div className="text-sm opacity-90">
+          <div className="flex items-center gap-3">
+            <Icon
+              className={cn(
+                "size-7 shrink-0 text-white",
+                error ? "fill-[#c62828]" : "fill-[#1f8a2e]",
+              )}
+            />
+            <span
+              className={cn("text-[15px] font-bold", error ? "text-[#6b1d1d]" : "text-[#1d4d2b]")}
+            >
+              {children}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PixScreen({
   order,
   onPaid,
@@ -1758,8 +1818,7 @@ function PixScreen({
 }) {
   const { clear } = useCart();
   const [copyLabel, setCopyLabel] = useState("Copiar código");
-  const [notice, setNotice] = useState<"off" | "in" | "out">("off");
-  const noticeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const { notice, show: showCopiedNotice } = useTimedNotice();
   const clearedRef = useRef(false);
   const secondsLeft = usePixCountdown(order.createdAt);
   const expired = secondsLeft === 0;
@@ -1785,19 +1844,6 @@ function PixScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order.orderId]);
 
-  useEffect(() => () => noticeTimers.current.forEach(clearTimeout), []);
-
-  /** Aviso verde "Código copiado com sucesso": elemento fixo próprio (não o Toaster do sonner, que
-   * no iPhone virava uma barra colada no rodapé). Centralizado, acima da área segura do iOS. */
-  function showCopiedNotice() {
-    noticeTimers.current.forEach(clearTimeout);
-    setNotice("in");
-    noticeTimers.current = [
-      setTimeout(() => setNotice("out"), 5000),
-      setTimeout(() => setNotice("off"), 5150),
-    ];
-  }
-
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(order.pixCode);
@@ -1815,24 +1861,9 @@ function PixScreen({
 
   return (
     <div className="mx-auto max-w-2xl pb-10 lg:max-w-7xl">
-      {notice !== "off" && (
-        <div
-          role="status"
-          data-state={notice === "in" ? "open" : "closed"}
-          className="pix-copy-toast pointer-events-none z-[100] flex w-[calc(100%-2rem)] max-w-md items-center justify-center gap-3 overflow-hidden rounded-[12px] border border-[#bde8a3] bg-[#d7f8c2] py-4 pr-6 pl-4 shadow-lg"
-        >
-          <div className="grid gap-1">
-            <div className="text-sm opacity-90">
-              <div className="flex items-center gap-3">
-                <CircleCheck className="size-7 shrink-0 fill-[#1f8a2e] text-white" />
-                <span className="text-[15px] font-bold text-[#1d4d2b]">
-                  Código copiado com sucesso
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <NoticeToast state={notice} variant="success">
+        Código copiado com sucesso
+      </NoticeToast>
       <div
         className={cn(
           "relative mx-auto flex w-full max-w-2xl flex-col items-center rounded-lg text-center",
@@ -2106,7 +2137,9 @@ function SuccessScreen({ order }: { order: PixOrder }) {
                       ) : null}
                       <div className="min-w-0 flex-1">
                         <div className="flex font-medium text-[#01131A]">{item.title}</div>
-                        <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
+                        {item.size !== "ÚNICO" ? (
+                          <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
+                        ) : null}
                       </div>
                     </div>
                   </td>

@@ -57,7 +57,8 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
         row["address_complement"] ? ` - ${row["address_complement"]}` : ""
       } — ${row["address_neighborhood"]}, ${row["address_city"]}/${row["address_state"]} — CEP ${row["address_cep"]}`,
       items: (row["items"] as SagacepayOrderItem[]).map(
-        (item) => `${item.title} × ${item.quantity} (tam. ${item.size})`,
+        (item) =>
+          `${item.title} × ${item.quantity}${item.size !== "ÚNICO" ? ` (tam. ${item.size})` : ""}`,
       ),
       paidAt: row["paid_at"] as string | null,
       dispatchedAt: row["dispatched_at"] as string | null,
