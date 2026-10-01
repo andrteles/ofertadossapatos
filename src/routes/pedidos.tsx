@@ -125,7 +125,14 @@ function LoginForm({ onDone }: { onDone: () => void }) {
   );
 }
 
+const PAGE_SIZE = 10;
+
 function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: () => void }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageOrders = orders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   async function handleLogout() {
     await logoutPixel();
     onLogout();
@@ -137,7 +144,7 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
         <p className="text-sm text-muted-foreground">Nenhum pedido ainda.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {orders.map((order) => (
+          {pageOrders.map((order) => (
             <div key={order.id} className="flex flex-col gap-3 rounded-md border border-input p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -166,6 +173,32 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
           ))}
         </div>
       )}
+
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            Anterior
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Página {currentPage} de {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            Próxima
+          </Button>
+        </div>
+      ) : null}
 
       <div className="border-t border-border pt-6">
         <button
