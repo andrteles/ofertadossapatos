@@ -33,7 +33,7 @@ export function Header() {
               <img
                 src="/ferracini-logo.png"
                 alt="Ferracini"
-                className="hidden h-[18px] w-auto shrink-0 sm:block sm:h-[22px]"
+                className="hidden h-[26px] w-auto shrink-0 sm:block sm:h-[32px]"
               />
             ) : null}
 
@@ -48,7 +48,7 @@ export function Header() {
 
             {showCampaignLogo ? (
               <div className="flex flex-1 items-center justify-center sm:hidden">
-                <img src="/ferracini-logo.png" alt="Ferracini" className="h-[18px] w-auto" />
+                <img src="/ferracini-logo.png" alt="Ferracini" className="h-[26px] w-auto" />
               </div>
             ) : null}
 
