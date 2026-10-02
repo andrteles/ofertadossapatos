@@ -917,7 +917,7 @@ function CustomerForm({
 
   const [loading, setLoading] = useState(false);
 
-  const [method, setMethod] = useState<"card" | "pix">("pix");
+  const [method, setMethod] = useState<"card" | "pix">("card");
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
