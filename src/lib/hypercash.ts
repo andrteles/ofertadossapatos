@@ -231,14 +231,15 @@ export const createCardOrder = createServerFn({ method: "POST" })
       id: string;
       status: "pending" | "failed";
       failureReason: string | null;
+      upsell?: { externalId: string; items: SagacepayOrderItem[]; amount: number };
     }) {
       const admin = getSupabaseAdmin();
       if (!admin) return;
       const row = {
         id: input.id,
-        external_id: externalId,
+        external_id: input.upsell?.externalId ?? externalId,
         status: input.status,
-        amount,
+        amount: input.upsell?.amount ?? amount,
         customer_name: name,
         customer_email: email || null,
         customer_phone: phone || null,
@@ -250,7 +251,7 @@ export const createCardOrder = createServerFn({ method: "POST" })
         address_neighborhood: address.neighborhood,
         address_city: address.city,
         address_state: state,
-        items,
+        items: input.upsell?.items ?? items,
         pix_code: null,
         pix_qr_code: null,
       };
@@ -269,6 +270,14 @@ export const createCardOrder = createServerFn({ method: "POST" })
       if (error) console.error("Erro ao gravar pedido de cartão:", error);
     }
 
+    const hypercashCustomer = {
+      name,
+      email,
+      phone,
+      document: { number: document, type: document.length === 14 ? "CNPJ" : "CPF" },
+      address,
+    };
+
     let tx: HypercashTransaction;
     try {
       const response = await fetch(`${HYPERCASH_API_BASE}/user/transactions`, {
@@ -280,14 +289,7 @@ export const createCardOrder = createServerFn({ method: "POST" })
           paymentMethod: "CREDIT_CARD",
           card: { hash: data.cardToken },
           installments,
-          customer: {
-            name,
-            email,
-            phone,
-            document: { number: document, type: document.length === 14 ? "CNPJ" : "CPF" },
-            externalRef: externalId,
-            address,
-          },
+          customer: { ...hypercashCustomer, externalRef: externalId },
           shipping: { fee: 0, address },
           items: [
             ...items.map((item) => ({
@@ -370,6 +372,99 @@ export const createCardOrder = createServerFn({ method: "POST" })
 
     if (status === "PAID") await applyHypercashStatus(tx);
 
+    const upsellProduct = APPROVED.has(status) ? getProductBySlug(UPSELL_TEST_SLUG) : undefined;
+    if (upsellProduct) {
+      const upsellExternalId = crypto.randomUUID();
+      const upsellCents = Math.round(upsellProduct.price * 100);
+      const upsell = {
+        externalId: upsellExternalId,
+        amount: upsellProduct.price,
+        items: [
+          {
+            slug: upsellProduct.slug,
+            title: upsellProduct.title,
+            size: items[0]?.size ?? "",
+            quantity: 1,
+            price: upsellProduct.price,
+          },
+        ],
+      };
+      try {
+        const response = await fetch(`${HYPERCASH_API_BASE}/user/transactions`, {
+          method: "POST",
+          headers: { Authorization: authHeader(secretKey), "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: upsellCents,
+            currency: "BRL",
+            paymentMethod: "CREDIT_CARD",
+            card: { hash: data.cardToken },
+            installments: 1,
+            customer: { ...hypercashCustomer, externalRef: upsellExternalId },
+            shipping: { fee: 0, address },
+            items: [
+              {
+                title: upsellProduct.title,
+                unitPrice: upsellCents,
+                quantity: 1,
+                tangible: true,
+                externalRef: upsellProduct.slug,
+              },
+            ],
+            ...(host ? { postbackUrl: `https://${host}/api/webhooks/hypercash` } : {}),
+            metadata: JSON.stringify({ externalId: upsellExternalId, upsellOf: tx.id }),
+            ...(ip ? { ip } : {}),
+          }),
+        });
+        const body = (await response.json().catch(() => null)) as {
+          data?: HypercashTransaction;
+          message?: unknown;
+        } | null;
+        if (!response.ok || !body?.data) {
+          console.error("Upsell falhou:", response.status, JSON.stringify(body));
+          await saveCardOrder({
+            id: upsellExternalId,
+            status: "failed",
+            failureReason: `Upsell: HyperCash ${response.status}: ${apiErrorText(body)}`,
+            upsell,
+          });
+        } else {
+          const upsellTx = body.data;
+          const upsellStatus = upsellTx.status.toUpperCase();
+          if (REFUSED.has(upsellStatus)) {
+            await saveCardOrder({
+              id: upsellTx.id,
+              status: "failed",
+              failureReason: `Upsell: ${upsellTx.refusedReason || "Recusado (sem motivo informado)"}`,
+              upsell,
+            });
+          } else {
+            await saveCardOrder({
+              id: upsellTx.id,
+              status: "pending",
+              failureReason: null,
+              upsell,
+            });
+            await sendUtmifyOrder({
+              orderId: upsellExternalId,
+              status: "waiting_payment",
+              createdAt: new Date(),
+              customer: { name, email: email || null, phone: phone || null, document },
+              products: upsell.items.map((item) => ({
+                id: item.slug,
+                name: item.title,
+                quantity: item.quantity,
+                priceInCents: upsellCents,
+              })),
+              trackingParameters,
+            });
+            if (upsellStatus === "PAID") await applyHypercashStatus(upsellTx);
+          }
+        }
+      } catch (error) {
+        console.error("Upsell sem resposta:", error);
+      }
+    }
+
     return {
       ok: true,
       orderId: tx.id,
@@ -379,6 +474,8 @@ export const createCardOrder = createServerFn({ method: "POST" })
       lastDigits: tx.card?.lastDigits ?? null,
     };
   });
+
+const UPSELL_TEST_SLUG = "upsell-kit-10-calcados-masculinos-sortidos";
 
 /** Usado pelo checkout enquanto o cartão está em análise: confere na HyperCash e atualiza. */
 export const getCardOrderStatus = createServerFn({ method: "POST" })
