@@ -86,15 +86,20 @@ export const Route = createFileRoute("/checkout")({
 const PAYMENT_ROW_ONE = ["aura", "discover", "mastercard", "diners", "visa"] as const;
 const PAYMENT_ROW_TWO = ["amex", "pix", "elo"] as const;
 
+// Inline como na referência (lá os selos são <svg> direto no HTML; como <img>
+// o antialiasing das bordas sai diferente). "contents" tira o span do layout.
+const PAYMENT_SVGS = import.meta.glob<string>("../assets/payment/*.svg", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
 function PaymentBadges({ names }: { names: readonly string[] }) {
   return names.map((name) => (
-    <img
+    <span
       key={name}
-      src={`/payment/${name}.svg`}
-      alt={name}
-      width={37.5}
-      height={25}
-      className="h-[25px] w-[37.5px]"
+      className="contents"
+      dangerouslySetInnerHTML={{ __html: PAYMENT_SVGS[`../assets/payment/${name}.svg`] ?? "" }}
     />
   ));
 }
@@ -451,7 +456,7 @@ function CheckoutShell({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="mt-auto shrink-0 bg-[#f3f4f6] p-6 text-[#9ca3af] shadow-sm lg:mt-4 lg:p-8">
+      <footer className="mt-auto shrink-0 bg-[#f3f4f6] p-6 text-[#9ca3af] shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] lg:mt-4 lg:p-8">
         <div className="relative mx-auto max-w-2xl px-5 pb-10 lg:max-w-7xl">
           <div className="hidden flex-col items-center justify-center gap-1 text-center text-xs lg:flex">
             <p className="mb-1 w-full text-center font-medium">
@@ -466,8 +471,8 @@ function CheckoutShell({ children }: { children: React.ReactNode }) {
               </span>
             </div>
             <div className="mt-5 flex items-center">
-              <LockKeyhole className="mr-1 size-5" />
-              <span className="text-xs leading-[13px]">
+              <LockKeyhole className="mr-2 size-4 md:size-5" />
+              <span className="text-[9px] leading-[.65rem] md:text-xs md:leading-[13px]">
                 <b>PAGAMENTO</b>
                 <br /> 100% SEGURO
               </span>
@@ -2450,13 +2455,13 @@ function PixScreen({
   }
 
   return (
-    <div className="mx-auto max-w-2xl pb-10 lg:max-w-7xl">
+    <div className="mx-auto mt-2 max-w-2xl lg:max-w-7xl">
       <NoticeToast state={notice} variant="success">
         Código copiado com sucesso
       </NoticeToast>
       <div
         className={cn(
-          "relative mx-auto flex w-full max-w-2xl flex-col items-center rounded-lg text-center",
+          "relative mx-auto flex w-full max-w-2xl flex-col items-center rounded-[8px] text-center",
           expired && "max-lg:min-h-[calc(100dvh-12rem)] max-lg:justify-center max-lg:py-6",
         )}
       >
@@ -2503,8 +2508,7 @@ function PixScreen({
               <button
                 type="button"
                 onClick={onRestart}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-8 py-6 text-lg font-bold text-white md:px-14 md:py-7"
-                style={{ backgroundColor: PIX_GREEN }}
+                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-[6px] border border-[#E5E7EB] bg-[#13BF8C] px-8 py-6 text-lg font-bold text-[#F9FAFB] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-[#F8FAFC] hover:text-[#030712] focus-visible:ring-1 focus-visible:ring-[#030712] focus-visible:outline-none md:px-14 md:py-7"
               >
                 Gerar novo código
               </button>
@@ -2548,14 +2552,14 @@ function PixScreen({
                   readOnly
                   value={order.pixCode}
                   onClick={handleCopy}
-                  className="flex h-[46px] w-full cursor-pointer rounded-lg border border-dashed border-[#E5E7EB] bg-[#F7F7F7] px-3 text-[13px] font-normal text-[#6B7280] opacity-50 outline-none"
+                  className="flex h-[46px] w-full cursor-pointer rounded-[8px] border border-dashed border-[#E5E7EB] bg-[#F7F7F7] px-3 text-[13px] font-normal text-[#6B7280] opacity-50 outline-none"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={handleCopy}
-                className="mt-3 mb-2 inline-flex h-9 w-full items-center justify-center rounded-md border border-[#E5E7EB] bg-[#13BF8C] px-8 py-6 text-[14px] font-bold whitespace-nowrap text-[#F9FAFB] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-[#F9FAFB] hover:text-[#030712] focus-visible:ring-1 focus-visible:ring-[#030712] focus-visible:outline-none md:px-14 md:py-7"
+                className="mt-3 mb-2 inline-flex h-9 w-full items-center justify-center rounded-[6px] border border-[#E5E7EB] bg-[#13BF8C] px-8 py-6 text-[14px] font-bold whitespace-nowrap text-[#F9FAFB] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-[#F9FAFB] hover:text-[#030712] focus-visible:ring-1 focus-visible:ring-[#030712] focus-visible:outline-none md:px-14 md:py-7"
               >
                 <Copy className="mr-1 size-4" /> {copyLabel}
               </button>
