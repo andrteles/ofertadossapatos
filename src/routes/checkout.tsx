@@ -660,13 +660,9 @@ function CheckoutPage() {
 
   useEffect(() => {
     try {
-      const paidRaw = window.sessionStorage.getItem(PAID_STORAGE_KEY);
-      if (paidRaw) setPaidOrder(JSON.parse(paidRaw) as PixOrder);
-      else {
-        // Sair e voltar ao checkout reinicia na hora: um Pix aberto antes é descartado, não restaurado.
-        window.localStorage.removeItem(ORDER_STORAGE_KEY);
-        window.sessionStorage.removeItem(ORDER_STORAGE_KEY);
-      }
+      // Sair e voltar ao checkout reinicia na hora: Pix aberto ou pedido finalizado antes é descartado, não restaurado.
+      window.localStorage.removeItem(ORDER_STORAGE_KEY);
+      window.sessionStorage.removeItem(ORDER_STORAGE_KEY);
     } catch {
       // ignora
     }
@@ -746,7 +742,6 @@ function CheckoutPage() {
       window.localStorage.removeItem(ORDER_STORAGE_KEY);
       window.sessionStorage.removeItem(FORM_STORAGE_KEY);
       window.sessionStorage.removeItem(INITIATE_STORAGE_KEY);
-      window.sessionStorage.setItem(PAID_STORAGE_KEY, JSON.stringify(confirmed));
     } catch {
       // ignora
     }
@@ -766,21 +761,11 @@ function CheckoutPage() {
   }
 
   function handleCardUpdate(updated: PixOrder) {
-    try {
-      window.sessionStorage.setItem(PAID_STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      // ignora
-    }
     setPaidOrder(updated);
   }
 
   /** "Revisar dados" do pagamento não aprovado: volta pro checkout (a sacola continua lá). */
   function handleReview() {
-    try {
-      window.sessionStorage.removeItem(PAID_STORAGE_KEY);
-    } catch {
-      // ignora
-    }
     setPaidOrder(null);
     window.scrollTo(0, 0);
   }
@@ -825,7 +810,6 @@ type Step = "personal" | "address" | "payment";
 
 const FORM_STORAGE_KEY = "outlet-checkout-form";
 const ORDER_STORAGE_KEY = "outlet-checkout-order";
-const PAID_STORAGE_KEY = "outlet-checkout-paid";
 const INITIATE_STORAGE_KEY = "outlet-checkout-initiate";
 
 function CustomerForm({
