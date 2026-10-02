@@ -1,0 +1,16 @@
+[
+  {
+    "handle": "upsell-kit-10-calcados-masculinos-sortidos",
+    "slug": "upsell-kit-10-calcados-masculinos-sortidos",
+    "title": "Upsell: Kit 10 Calçados Masculinos Sortidos – Outlet",
+    "description": null,
+    "brand": "Ferracini",
+    "price": 10,
+    "compareAtPrice": null,
+    "discountPercent": null,
+    "images": ["/upsell/kit-10-calcados-masculinos.webp"],
+    "sizes": ["37", "38", "39", "40", "41", "42", "43", "44"],
+    "category": "Upsell",
+    "tags": ["upsell"]
+  }
+]

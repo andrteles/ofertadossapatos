@@ -1,4 +1,5 @@
 import raw from "@/data/products.json";
+import upsellRaw from "@/data/upsell-products.json";
 
 export interface Product {
   handle: string;
@@ -19,8 +20,16 @@ export interface Product {
 
 export const products = raw as Product[];
 
+/** Produtos só de upsell: ficam fora da vitrine, da busca e de /produtos/..., mas o carrinho e o
+ * checkout encontram (o preço continua vindo daqui, nunca do navegador). */
+export const upsellProducts = upsellRaw as Product[];
+
+export function isUpsellProduct(product: Product): boolean {
+  return upsellProducts.some((p) => p.slug === product.slug);
+}
+
 export function getProductBySlug(slug: string): Product | undefined {
-  return products.find((p) => p.slug === slug);
+  return products.find((p) => p.slug === slug) ?? upsellProducts.find((p) => p.slug === slug);
 }
 
 export function getRelatedProducts(product: Product, limit = 4): Product[] {

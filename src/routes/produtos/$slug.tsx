@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { useCampaignLogo } from "@/lib/campaign";
 import { useCart } from "@/lib/cart";
 import { formatInstallmentsComJuros, formatPrice, isSingleSize } from "@/lib/format";
-import { getProductBySlug, getRelatedProducts, type Product } from "@/lib/products";
+import {
+  getProductBySlug,
+  getRelatedProducts,
+  isUpsellProduct,
+  type Product,
+} from "@/lib/products";
 import { trackMetaPixelEvent, trackPixelEvent, trackTikTokEvent } from "@/lib/tracking";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +30,7 @@ function metaDescription(product: Product): string {
 export const Route = createFileRoute("/produtos/$slug")({
   loader: ({ params }) => {
     const product = getProductBySlug(params.slug);
-    if (!product) throw notFound();
+    if (!product || isUpsellProduct(product)) throw notFound();
     return product;
   },
   head: ({ loaderData }) => ({
