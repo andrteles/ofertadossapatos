@@ -17,7 +17,7 @@ const HYPERCASH_API_BASE = "https://api.hypercashbrasil.com.br/api";
 export const INSTALLMENT_INTEREST = 1.06;
 
 function getSecretKey(): string {
-  const key = process.env["HYPERCASH_SECRET_KEY"];
+  const key = process.env["HYPERCASH_SECRET_KEY"]?.trim();
   if (!key) throw new Error("HYPERCASH_SECRET_KEY não configurada");
   return key;
 }
@@ -112,7 +112,7 @@ export async function applyHypercashStatus(tx: HypercashTransaction): Promise<st
 /** Só a chave pública (pk_) vai pro navegador, para o security.js tokenizar o cartão. */
 export const getCardPublicKey = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ publicKey: string | null }> => ({
-    publicKey: process.env["HYPERCASH_PUBLIC_KEY"] || null,
+    publicKey: process.env["HYPERCASH_PUBLIC_KEY"]?.trim() || null,
   }),
 );
 
