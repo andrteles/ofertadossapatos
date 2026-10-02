@@ -391,7 +391,7 @@ export const createCardOrder = createServerFn({ method: "POST" })
       status: APPROVED.has(status) ? "paid" : "pending",
       amount,
       brand: tx.card?.brand ?? null,
-      lastDigits: tx.card?.lastDigits ?? null,
+      lastDigits: onlyDigits(tx.card?.lastDigits ?? "").slice(-4) || null,
     };
   });
 
