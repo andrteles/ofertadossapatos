@@ -2718,7 +2718,10 @@ function SuccessScreen({
             ) : (
               <>
                 <div>
-                  <CircleCheck className="size-24 text-[#059669]" aria-label={undefined} />
+                  <CircleCheck
+                    className={cn("size-24", card ? "text-[#059669]" : "text-emerald-600")}
+                    aria-label={undefined}
+                  />
                 </div>
                 <div className="mb-3 mt-5">
                   <h2 id="order-status-title" data-status="PAY" className="text-2xl font-bold">
@@ -2872,24 +2875,33 @@ function SuccessScreen({
                           style={{ color: "transparent", width: 80, height: 80 }}
                         />
                       ) : null}
-                      <div>
-                        <div
-                          id={`order-summary-product-name-${index}`}
-                          className={cn("flex font-medium", tone.strong)}
-                        >
-                          {item.title}
-                        </div>
-                        {/* Como na referência: 2ª linha é a descrição (lá, igual ao título); o
-                         * tamanho vai no bloco de campos extras, no mesmo formato. */}
-                        <div className={cn("mt-1 truncate", tone.muted)}>{item.title}</div>
-                        {!isSingleSize(item.size) ? (
-                          <div className="mt-1 flex flex-col gap-0.5 text-xs text-gray-500">
-                            <span>
-                              <span className="capitalize">tamanho</span>: {item.size}
-                            </span>
+                      {card ? (
+                        <div>
+                          <div
+                            id={`order-summary-product-name-${index}`}
+                            className={cn("flex font-medium", tone.strong)}
+                          >
+                            {item.title}
                           </div>
-                        ) : null}
-                      </div>
+                          {/* Como na referência: 2ª linha é a descrição (lá, igual ao título); o
+                           * tamanho vai no bloco de campos extras, no mesmo formato. */}
+                          <div className={cn("mt-1 truncate", tone.muted)}>{item.title}</div>
+                          {!isSingleSize(item.size) ? (
+                            <div className="mt-1 flex flex-col gap-0.5 text-xs text-gray-500">
+                              <span>
+                                <span className="capitalize">tamanho</span>: {item.size}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="min-w-0 flex-1">
+                          <div className="flex font-medium text-[#01131A]">{item.title}</div>
+                          {!isSingleSize(item.size) ? (
+                            <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td
