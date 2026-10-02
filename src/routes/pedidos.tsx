@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
 import { getOrdersAuthState, listOrders, type OrderListItem } from "@/lib/orders-admin";
 import { getPageNumbers } from "@/lib/pagination";
-import { loginPixel, logoutPixel } from "@/lib/pixel-settings";
+import { changePixelPassword, loginPixel, logoutPixel } from "@/lib/pixel-settings";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pedidos")({
@@ -131,6 +131,7 @@ const PAGE_SIZE = 10;
 
 function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: () => void }) {
   const [page, setPage] = useState(1);
+  const [changingPassword, setChangingPassword] = useState(false);
   const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageOrders = orders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -226,14 +227,104 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
       ) : null}
 
       <div className="border-t border-border pt-6">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="text-sm font-medium text-foreground underline underline-offset-2 hover:text-primary"
-        >
-          Sair
-        </button>
+        {changingPassword ? (
+          <ChangePasswordForm onDone={() => setChangingPassword(false)} />
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setChangingPassword(true)}
+              className="text-sm font-medium text-foreground underline underline-offset-2 hover:text-primary"
+            >
+              Alterar senha
+            </button>
+            <span className="text-muted-foreground">·</span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-sm font-medium text-foreground underline underline-offset-2 hover:text-primary"
+            >
+              Sair
+            </button>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// Mesmo formulário de /pixel (mesma senha e mesmo cookie).
+function ChangePasswordForm({ onDone }: { onDone: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (newPassword.length < 8) {
+      toast.error("Use uma senha com pelo menos 8 caracteres.");
+      return;
+    }
+    setLoading(true);
+    let result: Awaited<ReturnType<typeof changePixelPassword>>;
+    try {
+      result = await changePixelPassword({ data: { currentPassword, newPassword } });
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro de conexão com o servidor. Tente novamente.");
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
+    if (!result.ok) {
+      toast.error("Senha atual incorreta.");
+      return;
+    }
+    toast.success("Senha alterada");
+    onDone();
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="currentPassword" className="text-sm font-medium text-foreground">
+          Senha atual
+        </label>
+        <input
+          id="currentPassword"
+          type="password"
+          required
+          value={currentPassword}
+          onChange={(event) => setCurrentPassword(event.target.value)}
+          className={inputClass}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="newPassword" className="text-sm font-medium text-foreground">
+          Nova senha
+        </label>
+        <input
+          id="newPassword"
+          type="password"
+          required
+          minLength={8}
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+          className={inputClass}
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={loading} size="sm" className="font-bold text-white">
+          {loading ? "Salvando..." : "Salvar nova senha"}
+        </Button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
