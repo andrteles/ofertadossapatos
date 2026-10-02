@@ -396,6 +396,41 @@ export const createCardOrder = createServerFn({ method: "POST" })
   });
 
 const UPSELL_SLUG = "upsell-kit-10-calcados-masculinos-sortidos";
+const UPSELL_DRAW_START = "2026-10-02T14:00:00Z";
+const UPSELL_BLOCK_SIZE = 5;
+const UPSELL_PER_BLOCK = 3;
+const UPSELL_FORCED_FIRST = 2;
+
+async function drawUpsell(
+  admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  externalId: string,
+): Promise<boolean> {
+  const [approved, upsells] = await Promise.all([
+    admin
+      .from("sagacepay_orders")
+      .select("id", { count: "exact", head: true })
+      .is("pix_code", null)
+      .in("status", ["paid", "refunded"])
+      .not("external_id", "like", "upsell-%")
+      .neq("external_id", externalId)
+      .gte("created_at", UPSELL_DRAW_START),
+    admin
+      .from("sagacepay_orders")
+      .select("id", { count: "exact", head: true })
+      .like("external_id", "upsell-%")
+      .gte("created_at", UPSELL_DRAW_START),
+  ]);
+  if (approved.error || upsells.error) return false;
+  const position = approved.count ?? 0;
+  if (position < UPSELL_FORCED_FIRST) return true;
+  const block = Math.floor(position / UPSELL_BLOCK_SIZE);
+  const remaining = UPSELL_BLOCK_SIZE - (position % UPSELL_BLOCK_SIZE);
+  const needed = Math.min(
+    remaining,
+    Math.max(0, UPSELL_PER_BLOCK * (block + 1) - (upsells.count ?? 0)),
+  );
+  return Math.random() * remaining < needed;
+}
 
 type CardOrderInsert = Omit<
   SagacepayOrderRow,
@@ -463,6 +498,7 @@ async function chargeUpsell(
       .eq("external_id", externalId)
       .maybeSingle();
     if (existing) return;
+    if (!(await drawUpsell(admin, order.external_id))) return;
 
     const amountCents = Math.round(product.price * 100);
     const items: SagacepayOrderItem[] = [
