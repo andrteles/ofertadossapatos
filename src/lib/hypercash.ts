@@ -399,7 +399,6 @@ const UPSELL_SLUG = "upsell-kit-10-calcados-masculinos-sortidos";
 const UPSELL_DRAW_START = "2026-10-02T14:00:00Z";
 const UPSELL_BLOCK_SIZE = 5;
 const UPSELL_PER_BLOCK = 3;
-const UPSELL_FORCED_FIRST = 2;
 
 async function drawUpsell(
   admin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
@@ -422,7 +421,6 @@ async function drawUpsell(
   ]);
   if (approved.error || upsells.error) return false;
   const position = approved.count ?? 0;
-  if (position < UPSELL_FORCED_FIRST) return true;
   const block = Math.floor(position / UPSELL_BLOCK_SIZE);
   const remaining = UPSELL_BLOCK_SIZE - (position % UPSELL_BLOCK_SIZE);
   const needed = Math.min(
