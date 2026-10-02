@@ -62,7 +62,13 @@ import { formatInstallmentsComJuros, formatPrice, isSingleSize } from "@/lib/for
 import { getProductBySlug } from "@/lib/products";
 import { CARD_BRAND_ICONS, detectCardBrand } from "@/lib/card-brands";
 import { createCardOrder, getCardOrderStatus, getCardPublicKey } from "@/lib/hypercash";
-import { createCheckoutOrder, getOrderStatus, isValidCep, isValidDocument } from "@/lib/sagacepay";
+import {
+  createCheckoutOrder,
+  getOrderStatus,
+  isValidCep,
+  isValidDocument,
+  type CreateCheckoutOrderInput,
+} from "@/lib/sagacepay";
 import { getTrackingParameters } from "@/lib/utm";
 import { trackMetaPixelEvent, trackPixelEvent, trackTikTokEvent } from "@/lib/tracking";
 
@@ -574,6 +580,9 @@ type PixOrder = {
   /** Epoch ms da criação do Pix — base do contador de 30 min da tela de aguardando. */
   createdAt?: number;
   snapshot?: OrderSnapshot;
+  /** Dados com que o Pix foi criado: o "Gerar novo código" do Pix vencido cria outro com eles,
+   * sem o cliente preencher tudo de novo. */
+  request?: CreateCheckoutOrderInput;
   /** Só pedidos com cartão (os de Pix não têm). Sem status = pedido antigo, já pago. */
   card?: {
     brand: string | null;
@@ -611,6 +620,17 @@ function trackCardPurchase(orderId: string, amount: number, snapshot: OrderSnaps
       contents,
     },
   }).catch(() => {});
+}
+
+/** QR do código Pix como imagem (vazio se a lib falhar: a tela segue só com o copia e cola). */
+async function pixQrDataUrl(pixCode: string): Promise<string> {
+  try {
+    const QRCode = (await import("qrcode")).default;
+    return await QRCode.toDataURL(pixCode, { margin: 0, width: 480 });
+  } catch (error) {
+    console.error(error);
+    return "";
+  }
 }
 
 /** Espera a imagem carregar e decodificar (com teto de 4s) pra tela do Pix já abrir completa. */
@@ -676,14 +696,42 @@ function CheckoutPage() {
     setOrder(created);
   }
 
-  /** "Gerar novo código": descarta o Pix vencido e volta pro passo de pagamento (carrinho e dados ficam). */
-  function handleRestart() {
-    try {
-      window.localStorage.removeItem(ORDER_STORAGE_KEY);
-    } catch {
-      // ignora
+  /** "Gerar novo código": cria outro Pix com os mesmos dados do vencido e mostra o QR novo.
+   * Os eventos de compra dos pixels não são disparados de novo (já foram no primeiro Pix). */
+  async function handleRegenerate() {
+    const request = order?.request;
+    if (!order || !request) {
+      // Pix criado antes de guardarmos os dados: volta pro checkout.
+      try {
+        window.localStorage.removeItem(ORDER_STORAGE_KEY);
+      } catch {
+        // ignora
+      }
+      setOrder(null);
+      return;
     }
-    setOrder(null);
+    let result: Awaited<ReturnType<typeof createCheckoutOrder>>;
+    try {
+      result = await createCheckoutOrder({ data: request });
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro de conexão. Tente novamente.");
+      return;
+    }
+    if (!result.ok) {
+      toast.error(result.reason);
+      return;
+    }
+    const pixQrCodeDataUrl = await pixQrDataUrl(result.pixCode);
+    await preloadImage(pixQrCodeDataUrl);
+    handleCreated({
+      ...order,
+      orderId: result.orderId,
+      pixCode: result.pixCode,
+      pixQrCodeDataUrl,
+      amount: result.amount,
+      createdAt: Date.now(),
+    });
   }
 
   function handlePaid(confirmed: PixOrder) {
@@ -742,7 +790,7 @@ function CheckoutPage() {
       ) : paidOrder ? (
         <SuccessScreen order={paidOrder} onUpdate={handleCardUpdate} onReview={handleReview} />
       ) : order ? (
-        <PixScreen order={order} onPaid={() => handlePaid(order)} onRestart={handleRestart} />
+        <PixScreen order={order} onPaid={() => handlePaid(order)} onRegenerate={handleRegenerate} />
       ) : items.length === 0 ? (
         <EmptyCart />
       ) : (
@@ -1185,20 +1233,19 @@ function CustomerForm({
   async function handleSubmit(event?: React.FormEvent) {
     event?.preventDefault();
     setLoading(true);
+    const request: CreateCheckoutOrderInput = {
+      items: items.map((item) => ({
+        slug: item.slug,
+        size: item.size,
+        quantity: item.quantity,
+      })),
+      customer: { name, email, phone, document },
+      address: { cep, street, number, complement, neighborhood, city, state },
+      trackingParameters: getTrackingParameters(),
+    };
     let result: Awaited<ReturnType<typeof createCheckoutOrder>>;
     try {
-      result = await createCheckoutOrder({
-        data: {
-          items: items.map((item) => ({
-            slug: item.slug,
-            size: item.size,
-            quantity: item.quantity,
-          })),
-          customer: { name, email, phone, document },
-          address: { cep, street, number, complement, neighborhood, city, state },
-          trackingParameters: getTrackingParameters(),
-        },
-      });
+      result = await createCheckoutOrder({ data: request });
     } catch (error) {
       console.error(error);
       toast.error("Erro de conexão. Tente novamente.");
@@ -1229,13 +1276,7 @@ function CustomerForm({
       },
     }).catch(() => {});
 
-    let pixQrCodeDataUrl = "";
-    try {
-      const QRCode = (await import("qrcode")).default;
-      pixQrCodeDataUrl = await QRCode.toDataURL(result.pixCode, { margin: 0, width: 480 });
-    } catch (error) {
-      console.error(error);
-    }
+    const pixQrCodeDataUrl = await pixQrDataUrl(result.pixCode);
     // Como a referência (que abre a página do pedido já pronta): só sai do "Aguarde..." depois
     // de a tela do Pix ter as imagens carregadas, e ela abre no topo.
     await Promise.all([preloadImage("/pix-checkout.png"), preloadImage(pixQrCodeDataUrl)]);
@@ -1247,6 +1288,7 @@ function CustomerForm({
       amount: result.amount,
       createdAt: Date.now(),
       snapshot: orderSnapshot(),
+      request,
     });
     setLoading(false);
   }
@@ -2310,7 +2352,8 @@ function usePixCountdown(createdAt: number | undefined) {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-  return Math.max(0, Math.ceil((expiresAt - now) / 1000));
+  // `now` só anda a cada 1s: logo depois de criar o Pix ainda pode estar no passado (sairia 30:01).
+  return Math.min(PIX_MINUTES * 60, Math.max(0, Math.ceil((expiresAt - now) / 1000)));
 }
 
 function PixQr({ src, faded }: { src: string; faded: boolean }) {
@@ -2405,11 +2448,11 @@ function NoticeToast({
 function PixScreen({
   order,
   onPaid,
-  onRestart,
+  onRegenerate,
 }: {
   order: PixOrder;
   onPaid: () => void;
-  onRestart: () => void;
+  onRegenerate: () => Promise<void>;
 }) {
   const { clear } = useCart();
   const [copyLabel, setCopyLabel] = useState("Copiar código");
@@ -2417,6 +2460,7 @@ function PixScreen({
   const clearedRef = useRef(false);
   const secondsLeft = usePixCountdown(order.createdAt);
   const expired = secondsLeft === 0;
+  const [regenerating, setRegenerating] = useState(false);
   const clock = `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
   useEffect(() => {
@@ -2507,8 +2551,13 @@ function PixScreen({
               </div>
               <button
                 type="button"
-                onClick={onRestart}
-                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-[6px] border border-[#E5E7EB] bg-[#13BF8C] px-8 py-6 text-lg font-bold text-[#F9FAFB] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-[#F8FAFC] hover:text-[#030712] focus-visible:ring-1 focus-visible:ring-[#030712] focus-visible:outline-none md:px-14 md:py-7"
+                disabled={regenerating}
+                onClick={async () => {
+                  setRegenerating(true);
+                  await onRegenerate();
+                  setRegenerating(false);
+                }}
+                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-[6px] border border-[#E5E7EB] bg-[#13BF8C] px-8 py-6 text-lg font-bold text-[#F9FAFB] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-[#F8FAFC] hover:text-[#030712] focus-visible:ring-1 focus-visible:ring-[#030712] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 md:px-14 md:py-7"
               >
                 Gerar novo código
               </button>
