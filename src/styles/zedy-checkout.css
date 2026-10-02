@@ -493,3 +493,16 @@
 .zc *{translate:none}
 .zc .border-rose-300{--tw-border-opacity:1;border-color:rgb(253 164 175/var(--tw-border-opacity,1))}
 .zc .bg-rose-100{--tw-bg-opacity:1;background-color:rgb(255 228 230/var(--tw-bg-opacity,1))}
+.zc .bg-background{background-color:hsl(var(--background))}
+.zc .hover\:bg-accent:hover{background-color:hsl(var(--accent))}
+.zc .hover\:text-accent-foreground:hover{color:hsl(var(--accent-foreground))}
+.zc .text-muted-foreground{color:hsl(var(--muted-foreground))}
+.zc .ml-2{margin-left:.5rem}
+.zc .animate-spin{animation:spin 1s linear infinite}
+.zc .\[\&_button\]\:rounded-xl button{border-radius:.75rem}
+.zc .\[\&_button\]\:border-rose-300 button{--tw-border-opacity:1;border-color:rgb(253 164 175/var(--tw-border-opacity,1))}
+.zc .\[\&_button\]\:bg-rose-50 button{--tw-bg-opacity:1;background-color:rgb(255 241 242/var(--tw-bg-opacity,1))}
+.zc .grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.zc .text-rose-600{--tw-text-opacity:1;color:rgb(225 29 72/var(--tw-text-opacity,1))}
+.zc .text-\[\#B91C1C\]{--tw-text-opacity:1;color:rgb(185 28 28/var(--tw-text-opacity,1))}
+.zc .self-start{align-self:flex-start}

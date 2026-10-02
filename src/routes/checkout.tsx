@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  ChevronsUpDown,
   CircleCheck,
   CircleX,
   CreditCard,
@@ -22,7 +23,16 @@ import { Drawer as DrawerPrimitive } from "vaul";
 
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 
+import { Command as CommandPrimitive } from "cmdk";
 import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetOverlay, SheetPortal } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
@@ -182,6 +192,155 @@ async function lookupCep(cep: string): Promise<CepLookupResult> {
   } catch {
     return { ok: false, reason: "error" };
   }
+}
+
+/** Mesma ordem da referência (código IBGE das UFs). */
+const BR_STATES: [string, string][] = [
+  ["RO", "Rondônia"],
+  ["AC", "Acre"],
+  ["AM", "Amazonas"],
+  ["RR", "Roraima"],
+  ["PA", "Pará"],
+  ["AP", "Amapá"],
+  ["TO", "Tocantins"],
+  ["MA", "Maranhão"],
+  ["PI", "Piauí"],
+  ["CE", "Ceará"],
+  ["RN", "Rio Grande do Norte"],
+  ["PB", "Paraíba"],
+  ["PE", "Pernambuco"],
+  ["AL", "Alagoas"],
+  ["SE", "Sergipe"],
+  ["BA", "Bahia"],
+  ["MG", "Minas Gerais"],
+  ["ES", "Espírito Santo"],
+  ["RJ", "Rio de Janeiro"],
+  ["SP", "São Paulo"],
+  ["PR", "Paraná"],
+  ["SC", "Santa Catarina"],
+  ["RS", "Rio Grande do Sul"],
+  ["MS", "Mato Grosso do Sul"],
+  ["MT", "Mato Grosso"],
+  ["GO", "Goiás"],
+  ["DF", "Distrito Federal"],
+];
+
+async function lookupCities(uf: string): Promise<string[]> {
+  try {
+    const response = await fetch(
+      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`,
+    );
+    if (!response.ok) return [];
+    const json = (await response.json()) as { nome: string }[];
+    return json.map((item) => item.nome);
+  } catch {
+    return [];
+  }
+}
+
+const COMBO_BUTTON =
+  "inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full justify-between";
+
+function ComboField({
+  id,
+  label,
+  searchPlaceholder,
+  options,
+  value,
+  display,
+  onSelect,
+  disabled,
+  loading,
+  error,
+}: {
+  id: string;
+  label: string;
+  searchPlaceholder: string;
+  options: { value: string; label: string; key: string }[];
+  value: string;
+  display: string;
+  onSelect: (key: string) => void;
+  disabled?: boolean;
+  loading?: boolean;
+  error?: string | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <label className="text-sm font-medium mb-2 block">{label}</label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className={`${COMBO_BUTTON}${value ? "" : " text-muted-foreground"}`}
+            id={id}
+            role="combobox"
+            aria-expanded={open}
+            type="button"
+            disabled={disabled || loading}
+          >
+            <span className="truncate flex-1 text-left">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Carregando...
+                </>
+              ) : (
+                display || "Selecione"
+              )}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0" align="start">
+          <Command>
+            <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="mr-2 h-4 w-4 shrink-0 opacity-50"
+              >
+                <path
+                  d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5ZM9.30884 10.0159C8.53901 10.6318 7.56251 11 6.5 11C4.01472 11 2 8.98528 2 6.5C2 4.01472 4.01472 2 6.5 2C8.98528 2 11 4.01472 11 6.5C11 7.56251 10.6318 8.53901 10.0159 9.30884L12.8536 12.1464C13.0488 12.3417 13.0488 12.6583 12.8536 12.8536C12.6583 13.0488 12.3417 13.0488 12.1464 12.8536L9.30884 10.0159Z"
+                  fill="currentColor"
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <CommandPrimitive.Input
+                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder={searchPlaceholder}
+              />
+            </div>
+            <CommandList>
+              <CommandEmpty>Nenhum resultado.</CommandEmpty>
+              <CommandGroup>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.key}
+                    value={option.value}
+                    className="data-[selected=true]:bg-[hsl(220_14.3%_95.9%)] data-[selected=true]:text-[hsl(220.9_39.3%_11%)]"
+                    onSelect={() => {
+                      onSelect(option.key);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={`mr-2 h-4 w-4 ${option.key === value ? "opacity-100" : "opacity-0"}`}
+                    />
+                    {option.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {error ? <p className="text-rose-600 text-[11px] mt-1">{error}</p> : null}
+    </div>
+  );
 }
 
 const COMPANY_NAME = "Arte & Couro Calçados LTDA";
@@ -494,6 +653,18 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
   const [addressRevealed, setAddressRevealed] = useState(false);
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "not-found" | "error">("idle");
   const [addressTouched, setAddressTouched] = useState<Record<string, boolean>>({});
+  // CEP não achado: como a referência, abre os campos vazios + Estado/Cidade pra preencher à mão.
+  const manualAddress = cepStatus === "not-found" || cepStatus === "error";
+  const [cities, setCities] = useState<string[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  // Igual à referência: com o endereço achado pelo CEP, o foco pula pro número.
+  const [focusNumberTick, setFocusNumberTick] = useState(0);
+  useEffect(() => {
+    if (!focusNumberTick) return;
+    [...window.document.querySelectorAll<HTMLInputElement>("#number")]
+      .find((input) => input.offsetParent)
+      ?.focus();
+  }, [focusNumberTick]);
 
   const [loading, setLoading] = useState(false);
 
@@ -571,25 +742,38 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
     if (digits.length !== 8) return;
     setCepStatus("loading");
     const result = await lookupCep(digits);
-    if (!result.ok) {
-      setCepStatus(result.reason);
+    if (!result.ok || !result.data.localidade || !result.data.uf) {
+      setCepStatus(result.ok ? "not-found" : result.reason);
+      setStreet("");
+      setNumber("");
+      setComplement("");
+      setNeighborhood("");
       setCity("");
       setState("");
-      setAddressRevealed(false);
+      setCities([]);
+      setAddressTouched({});
+      setAddressRevealed(true);
+      (window.document.activeElement as HTMLElement | null)?.blur();
       return;
     }
     const found = result.data;
     setStreet(found.logradouro ?? "");
+    setNumber("");
     setNeighborhood(found.bairro ?? "");
     setCity(found.localidade ?? "");
     setState(found.uf ?? "");
-    if (!found.localidade || !found.uf) {
-      setCepStatus("not-found");
-      setAddressRevealed(false);
-      return;
-    }
     setCepStatus("idle");
     setAddressRevealed(true);
+    setFocusNumberTick((tick) => tick + 1);
+  }
+
+  async function selectState(uf: string) {
+    setState(uf);
+    setCity("");
+    setCities([]);
+    setCitiesLoading(true);
+    setCities(await lookupCities(uf));
+    setCitiesLoading(false);
   }
 
   const untouch = (field: string) =>
@@ -615,13 +799,12 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
   const rawAddressErrors: Record<string, string> = {};
   if (!onlyDigits(cep)) rawAddressErrors["cep"] = "Informe seu CEP";
   else if (!isValidCep(cep)) rawAddressErrors["cep"] = "CEP inválido";
-  else if (cepStatus === "not-found") rawAddressErrors["cep"] = "CEP não encontrado";
-  else if (cepStatus === "error")
-    rawAddressErrors["cep"] = "Não foi possível consultar o CEP. Tente novamente.";
   else if (!addressRevealed) rawAddressErrors["cep"] = "Aguarde a busca do CEP";
   if (street.trim().length < 3) rawAddressErrors["street"] = "Endereço é obrigatório";
   if (number.trim().length < 1) rawAddressErrors["number"] = "Número é obrigatório";
   if (neighborhood.trim().length < 2) rawAddressErrors["neighborhood"] = "Bairro é obrigatório";
+  if (manualAddress && !state) rawAddressErrors["state"] = "Selecione o estado";
+  if (manualAddress && !city) rawAddressErrors["city"] = "Selecione a cidade";
 
   const pick = (errors: Record<string, string>, touched: Record<string, boolean>) =>
     Object.fromEntries(Object.entries(errors).filter(([field]) => touched[field]));
@@ -759,6 +942,12 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
   const addressState = (field: string): FieldState =>
     !rawAddressErrors[field] ? "valid" : addressTouched[field] ? "invalid" : "neutral";
   const showShipping = addressRevealed || step === "payment";
+  const cepNotFoundMessage = manualAddress && addressRevealed && !street;
+  const freteReady =
+    !manualAddress ||
+    ["street", "number", "neighborhood", "state", "city"].every(
+      (field) => !rawAddressErrors[field],
+    );
   const ink = { color: "rgb(15, 23, 42)" };
   const doneBorder = { borderColor: "rgb(226, 232, 240)" };
   const gap = mobile ? "mt-4" : "mt-3";
@@ -1410,9 +1599,21 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
                               else setAddressRevealed(false);
                             }}
                           />
-                          {addressState("cep") === "valid" ? <ZCheck /> : null}
+                          {addressState("cep") === "valid" &&
+                          (!manualAddress || (city && state)) ? (
+                            <ZCheck />
+                          ) : null}
+                          {cepNotFoundMessage ? (
+                            <p className="text-xs mt-3 text-[#B91C1C]">
+                              <span className="font-semibold">
+                                Não encontramos o endereço automaticamente.
+                              </span>
+                              <br />
+                              Preencha abaixo para continuar
+                            </p>
+                          ) : null}
                         </span>
-                        <span className="self-center">
+                        <span className={cepNotFoundMessage ? "self-start mt-4" : "self-center"}>
                           <p className="text-xs">
                             {cepStatus === "loading"
                               ? "Buscando..."
@@ -1533,63 +1734,115 @@ function CustomerForm({ onCreated }: { onCreated: (order: PixOrder) => void }) {
                               />
                             </div>
                           </div>
+                          {manualAddress ? (
+                            <div className="col-span-4 mt-4">
+                              <div
+                                className={`grid grid-cols-2 gap-4 mt-1 [&_button]:rounded-xl${state && city ? "" : " [&_button]:border-rose-300 [&_button]:bg-rose-50"}`}
+                              >
+                                <ComboField
+                                  id="state"
+                                  label="Estado"
+                                  searchPlaceholder="Pesquisar estado..."
+                                  options={BR_STATES.map(([uf, stateName]) => ({
+                                    key: uf,
+                                    value: `${uf} ${stateName}`,
+                                    label: `${uf} - ${stateName}`,
+                                  }))}
+                                  value={state}
+                                  display={
+                                    state
+                                      ? `${state} - ${BR_STATES.find(([uf]) => uf === state)?.[1] ?? ""}`
+                                      : ""
+                                  }
+                                  onSelect={(uf) => void selectState(uf)}
+                                  error={rawAddressErrors["state"]}
+                                />
+                                <ComboField
+                                  id="city"
+                                  label="Cidade"
+                                  searchPlaceholder="Pesquisar cidade..."
+                                  options={cities.map((cityName) => ({
+                                    key: cityName,
+                                    value: cityName,
+                                    label: cityName,
+                                  }))}
+                                  value={city}
+                                  display={city}
+                                  onSelect={setCity}
+                                  disabled={!state}
+                                  loading={citiesLoading}
+                                  error={rawAddressErrors["city"]}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                         <div className="mt-6 grid z-10 visible">
                           <fieldset id="shipping-method" tabIndex={-1} className="mb-5">
                             <legend className="text-large font-semibold text-slate-900">
                               Escolha o frete:
                             </legend>
-                            <div className="mt-4 grid grid-cols-1 gap-y-5">
-                              <div
-                                id="shipping-method-option-0"
-                                className="border-[1px] border-[#E2E8F0] bg-slate-100 relative flex cursor-pointer p-4 focus:outline-none w-full rounded-[0.5rem]"
-                                style={{ borderColor: "rgb(43, 111, 255)" }}
-                              >
-                                <div className="flex w-full items-center">
-                                  <svg
-                                    width="22"
-                                    height="22"
-                                    viewBox="0 0 22 22"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="mr-5"
+                            {!freteReady ? (
+                              <div className="mt-4 flex  items-center font-normal justify-center rounded-lg border border-[#F5F5F5] bg-[#F5F5F5] p-4 text-center text-[12px] text-[#707070]">
+                                Insira o endereço de entrega para ver as formas de frete
+                                disponíveis.
+                              </div>
+                            ) : null}
+                            {freteReady ? (
+                              <>
+                                <div className="mt-4 grid grid-cols-1 gap-y-5">
+                                  <div
+                                    id="shipping-method-option-0"
+                                    className="border-[1px] border-[#E2E8F0] bg-slate-100 relative flex cursor-pointer p-4 focus:outline-none w-full rounded-[0.5rem]"
+                                    style={{ borderColor: "rgb(43, 111, 255)" }}
                                   >
-                                    <rect
-                                      x="0.5"
-                                      y="0.5"
-                                      width="21"
-                                      height="21"
-                                      rx="10.5"
-                                      stroke="#2b6fff"
-                                    />
-                                    <circle cx="11" cy="11" r="5" fill="#2b6fff" />
-                                  </svg>
-                                  <div className="flex justify-between w-full items-center">
-                                    <div>
-                                      <span className="text-[13px] font-semibold text-slate-900 flex gap-2 leading-none">
-                                        ENTREGA ESTIMADA
-                                      </span>
-                                      <span className="flex gap-2 items-center">
-                                        <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
-                                          2 a 5 dias
-                                        </span>
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="font-semibold text-[13px]">Grátis</span>
+                                    <div className="flex w-full items-center">
+                                      <svg
+                                        width="22"
+                                        height="22"
+                                        viewBox="0 0 22 22"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="mr-5"
+                                      >
+                                        <rect
+                                          x="0.5"
+                                          y="0.5"
+                                          width="21"
+                                          height="21"
+                                          rx="10.5"
+                                          stroke="#2b6fff"
+                                        />
+                                        <circle cx="11" cy="11" r="5" fill="#2b6fff" />
+                                      </svg>
+                                      <div className="flex justify-between w-full items-center">
+                                        <div>
+                                          <span className="text-[13px] font-semibold text-slate-900 flex gap-2 leading-none">
+                                            ENTREGA ESTIMADA
+                                          </span>
+                                          <span className="flex gap-2 items-center">
+                                            <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
+                                              2 a 5 dias
+                                            </span>
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="font-semibold text-[13px]">Grátis</span>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            </div>
-                            <button
-                              className={`${Z_BUTTON} mt-5`}
-                              id="next-button-frete"
-                              type="submit"
-                              style={Z_BUTTON_BG}
-                            >
-                              Ir para pagamento
-                            </button>
+                                <button
+                                  className={`${Z_BUTTON} mt-5`}
+                                  id="next-button-frete"
+                                  type="submit"
+                                  style={Z_BUTTON_BG}
+                                >
+                                  Ir para pagamento
+                                </button>
+                              </>
+                            ) : null}
                           </fieldset>
                         </div>
                       </div>
