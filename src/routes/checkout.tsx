@@ -2883,15 +2883,11 @@ function SuccessScreen({
                           >
                             {item.title}
                           </div>
-                          {/* Como na referência: 2ª linha é a descrição (lá, igual ao título); o
-                           * tamanho vai no bloco de campos extras, no mesmo formato. */}
+                          {/* Como na referência: 2ª linha é a descrição (lá, igual ao título). O
+                           * tamanho segue o mesmo formato da página do Pix. */}
                           <div className={cn("mt-1 truncate", tone.muted)}>{item.title}</div>
                           {!isSingleSize(item.size) ? (
-                            <div className="mt-1 flex flex-col gap-0.5 text-xs text-gray-500">
-                              <span>
-                                <span className="capitalize">tamanho</span>: {item.size}
-                              </span>
-                            </div>
+                            <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
                           ) : null}
                         </div>
                       ) : (
