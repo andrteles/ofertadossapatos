@@ -22,7 +22,7 @@ export const Route = createFileRoute("/pedidos")({
 });
 
 const inputClass =
-  "rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring";
+  "rounded-md border border-input bg-background px-3 py-2 text-base outline-none focus-visible:ring-1 focus-visible:ring-ring sm:text-sm";
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Pendente",
@@ -135,6 +135,11 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
   const currentPage = Math.min(page, totalPages);
   const pageOrders = orders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  function goToPage(next: number) {
+    setPage(next);
+    window.scrollTo({ top: 0 });
+  }
+
   async function handleLogout() {
     await logoutPixel();
     onLogout();
@@ -183,7 +188,7 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
         >
           <button
             type="button"
-            onClick={() => setPage(currentPage - 1)}
+            onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
             className="rounded-md px-3 py-1.5 font-medium hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
           >
@@ -198,7 +203,7 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
               <button
                 key={item}
                 type="button"
-                onClick={() => setPage(item)}
+                onClick={() => goToPage(item)}
                 className={cn(
                   "flex size-8 items-center justify-center rounded-full font-medium hover:bg-secondary",
                   item === currentPage &&
@@ -211,7 +216,7 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
           )}
           <button
             type="button"
-            onClick={() => setPage(currentPage + 1)}
+            onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
             className="rounded-md px-3 py-1.5 font-medium hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
           >

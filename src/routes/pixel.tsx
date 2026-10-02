@@ -27,7 +27,7 @@ export const Route = createFileRoute("/pixel")({
 });
 
 const inputClass =
-  "rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring";
+  "rounded-md border border-input bg-background px-3 py-2 text-base outline-none focus-visible:ring-1 focus-visible:ring-ring sm:text-sm";
 
 function PixelPage() {
   const data = Route.useLoaderData();
