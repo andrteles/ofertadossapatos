@@ -61,7 +61,8 @@ export async function fetchHypercashTransaction(id: string): Promise<HypercashTr
 const APPROVED = new Set(["PAID", "AUTHORIZED"]);
 const REFUSED = new Set(["REFUSED", "CANCELED"]);
 
-/** Aplica o status da HyperCash no pedido local (idempotente: só mexe em pedido pending). */
+/** Aplica o status da HyperCash no pedido local (idempotente: pago/recusado só mexem em pedido
+ * pending; estorno só mexe em pedido pago). */
 export async function applyHypercashStatus(tx: HypercashTransaction): Promise<string> {
   const status = tx.status.toUpperCase();
   if (status === "PAID") {
@@ -86,6 +87,24 @@ export async function applyHypercashStatus(tx: HypercashTransaction): Promise<st
       }
     }
     return "failed";
+  }
+  if (status === "REFUNDED") {
+    const admin = getSupabaseAdmin();
+    if (admin) {
+      const { data: refunded } = await admin
+        .from("sagacepay_orders")
+        .update({ status: "refunded", updated_at: new Date().toISOString() })
+        .eq("id", tx.id)
+        .eq("status", "paid")
+        .select("*")
+        .single();
+      if (refunded) {
+        const { buildUtmifyOrder } = await import("@/lib/order-paid");
+        const row = refunded as unknown as Parameters<typeof buildUtmifyOrder>[0];
+        await sendUtmifyOrder(buildUtmifyOrder(row, "refunded", row.items));
+      }
+    }
+    return "refunded";
   }
   return "pending";
 }

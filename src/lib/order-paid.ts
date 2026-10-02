@@ -16,7 +16,9 @@ export function buildUtmifyOrder(
     orderId: row.external_id,
     status,
     createdAt: new Date(row.created_at),
-    approvedAt: status === "paid" ? new Date(row.paid_at ?? Date.now()) : null,
+    approvedAt:
+      status === "paid" || status === "refunded" ? new Date(row.paid_at ?? Date.now()) : null,
+    refundedAt: status === "refunded" ? new Date() : null,
     customer: {
       name: row.customer_name,
       email: row.customer_email,

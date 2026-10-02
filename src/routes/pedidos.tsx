@@ -29,6 +29,7 @@ const STATUS_LABEL: Record<string, string> = {
   paid: "Pago",
   failed: "Falhou",
   expired: "Expirado",
+  refunded: "Estornado",
 };
 
 const STATUS_CLASS: Record<string, string> = {
@@ -36,6 +37,7 @@ const STATUS_CLASS: Record<string, string> = {
   paid: "bg-green-100 text-green-800",
   failed: "bg-red-100 text-red-800",
   expired: "bg-red-100 text-red-800",
+  refunded: "bg-red-100 text-red-800",
 };
 
 function PedidosPage() {

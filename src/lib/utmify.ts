@@ -10,6 +10,7 @@ export interface UtmifyOrderInput {
   status: UtmifyStatus;
   createdAt: Date;
   approvedAt?: Date | null;
+  refundedAt?: Date | null;
   customer: { name: string; email: string | null; phone: string | null; document: string };
   products: { id: string; name: string; quantity: number; priceInCents: number }[];
   trackingParameters: TrackingParameters | null;
@@ -44,7 +45,7 @@ export async function sendUtmifyOrder(order: UtmifyOrderInput): Promise<{ sent: 
         status: order.status,
         createdAt: formatDate(order.createdAt),
         approvedDate: order.approvedAt ? formatDate(order.approvedAt) : null,
-        refundedAt: null,
+        refundedAt: order.refundedAt ? formatDate(order.refundedAt) : null,
         customer: {
           name: order.customer.name,
           email: order.customer.email ?? "",

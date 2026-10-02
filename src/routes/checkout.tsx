@@ -578,8 +578,8 @@ type PixOrder = {
   };
 };
 
-/** Estados da página do pedido no cartão da referência: ANALYSIS, PAY e REFUSED. */
-type CardStatus = "analysis" | "paid" | "refused";
+/** Estados da página do pedido no cartão da referência: ANALYSIS, PAY, REFUSED e REFUND. */
+type CardStatus = "analysis" | "paid" | "refused" | "refunded";
 
 /** Purchase/CompletePayment do cartão: na hora, se aprovou direto, ou quando sai da análise. */
 function trackCardPurchase(orderId: string, amount: number, snapshot: OrderSnapshot | undefined) {
@@ -2657,6 +2657,10 @@ function SuccessScreen({
           stopped = true;
           clearInterval(interval);
           onUpdate({ ...current, card: { ...current.card!, status: "refused" } });
+        } else if (result.status === "refunded") {
+          stopped = true;
+          clearInterval(interval);
+          onUpdate({ ...current, card: { ...current.card!, status: "refunded" } });
         }
       } catch {
         // tenta de novo no próximo tick
@@ -2665,6 +2669,25 @@ function SuccessScreen({
     return () => {
       stopped = true;
       clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.orderId, cardStatus]);
+
+  // Pedido pago reaberto (ex.: recarregar a página): confere uma vez se foi estornado.
+  useEffect(() => {
+    if (!card || cardStatus !== "paid") return;
+    let cancelled = false;
+    getCardOrderStatus({ data: { orderId: order.orderId } })
+      .then((result) => {
+        if (cancelled || result.status !== "refunded") return;
+        const current = orderRef.current;
+        onUpdate({ ...current, card: { ...current.card!, status: "refunded" } });
+      })
+      .catch(() => {
+        // fica como está
+      });
+    return () => {
+      cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order.orderId, cardStatus]);
@@ -2699,6 +2722,23 @@ function SuccessScreen({
                   </p>
                 </div>
               </>
+            ) : card && cardStatus === "refunded" ? (
+              <>
+                <div>
+                  <CircleX className="size-24 text-[#b91c1c]" aria-label={undefined} />
+                </div>
+                <div className="mb-3 mt-5">
+                  <h2 id="order-status-title" data-status="REFUND" className="text-2xl font-bold">
+                    Pedido estornado.
+                  </h2>
+                </div>
+                <div className="text-base md:px-20">
+                  <p>
+                    <b className="font-semibold">Que pena, ficamos triste...</b> <br /> Seu pedido
+                    foi estornado! O valor será refletido em sua fatura dentro de até 7 dias úteis.
+                  </p>
+                </div>
+              </>
             ) : card && cardStatus === "refused" ? (
               <>
                 <div>
@@ -2720,7 +2760,7 @@ function SuccessScreen({
                         e.preventDefault();
                         onReview();
                       }}
-                      className="inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none bg-checkout text-white font-bold text-base shadow hover:bg-checkout/90 disabled:opacity-100 h-10 rounded-md px-8 mt-4"
+                      className="inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none bg-[#006fff] text-white font-bold text-base shadow hover:bg-[#006fff]/90 disabled:opacity-100 h-10 rounded-[6px] px-8 mt-4"
                     >
                       Revisar dados
                     </a>
