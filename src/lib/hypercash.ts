@@ -8,7 +8,11 @@ import {
   sanitizeTrackingParameters,
   type CreateCheckoutOrderInput,
 } from "@/lib/sagacepay";
-import { getSupabaseAdmin, type SagacepayOrderItem } from "@/lib/supabase-admin";
+import {
+  getSupabaseAdmin,
+  type SagacepayOrderItem,
+  type SagacepayOrderRow,
+} from "@/lib/supabase-admin";
 import { sendUtmifyOrder } from "@/lib/utmify";
 
 const HYPERCASH_API_BASE = "https://api.hypercashbrasil.com.br/api";
@@ -231,15 +235,14 @@ export const createCardOrder = createServerFn({ method: "POST" })
       id: string;
       status: "pending" | "failed";
       failureReason: string | null;
-      upsell?: { externalId: string; items: SagacepayOrderItem[]; amount: number };
     }) {
       const admin = getSupabaseAdmin();
       if (!admin) return;
       const row = {
         id: input.id,
-        external_id: input.upsell?.externalId ?? externalId,
+        external_id: externalId,
         status: input.status,
-        amount: input.upsell?.amount ?? amount,
+        amount,
         customer_name: name,
         customer_email: email || null,
         customer_phone: phone || null,
@@ -251,32 +254,12 @@ export const createCardOrder = createServerFn({ method: "POST" })
         address_neighborhood: address.neighborhood,
         address_city: address.city,
         address_state: state,
-        items: input.upsell?.items ?? items,
+        items,
         pix_code: null,
         pix_qr_code: null,
       };
-      // Colunas opcionais (migrations que podem não ter sido aplicadas): tenta com elas, depois sem.
-      let { error } = await admin.from("sagacepay_orders").insert({
-        ...row,
-        tracking_parameters: trackingParameters,
-        ...(input.failureReason ? { failure_reason: input.failureReason } : {}),
-      });
-      if (error) {
-        ({ error } = await admin
-          .from("sagacepay_orders")
-          .insert({ ...row, tracking_parameters: trackingParameters }));
-      }
-      if (error) ({ error } = await admin.from("sagacepay_orders").insert(row));
-      if (error) console.error("Erro ao gravar pedido de cartão:", error);
+      await insertCardOrder(row, trackingParameters, input.failureReason);
     }
-
-    const hypercashCustomer = {
-      name,
-      email,
-      phone,
-      document: { number: document, type: document.length === 14 ? "CNPJ" : "CPF" },
-      address,
-    };
 
     let tx: HypercashTransaction;
     try {
@@ -289,7 +272,14 @@ export const createCardOrder = createServerFn({ method: "POST" })
           paymentMethod: "CREDIT_CARD",
           card: { hash: data.cardToken },
           installments,
-          customer: { ...hypercashCustomer, externalRef: externalId },
+          customer: {
+            name,
+            email,
+            phone,
+            document: { number: document, type: document.length === 14 ? "CNPJ" : "CPF" },
+            externalRef: externalId,
+            address,
+          },
           shipping: { fee: 0, address },
           items: [
             ...items.map((item) => ({
@@ -372,97 +362,27 @@ export const createCardOrder = createServerFn({ method: "POST" })
 
     if (status === "PAID") await applyHypercashStatus(tx);
 
-    const upsellProduct = APPROVED.has(status) ? getProductBySlug(UPSELL_TEST_SLUG) : undefined;
-    if (upsellProduct) {
-      const upsellExternalId = crypto.randomUUID();
-      const upsellCents = Math.round(upsellProduct.price * 100);
-      const upsell = {
-        externalId: upsellExternalId,
-        amount: upsellProduct.price,
-        items: [
-          {
-            slug: upsellProduct.slug,
-            title: upsellProduct.title,
-            size: items[0]?.size ?? "",
-            quantity: 1,
-            price: upsellProduct.price,
-          },
-        ],
-      };
-      try {
-        const response = await fetch(`${HYPERCASH_API_BASE}/user/transactions`, {
-          method: "POST",
-          headers: { Authorization: authHeader(secretKey), "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: upsellCents,
-            currency: "BRL",
-            paymentMethod: "CREDIT_CARD",
-            card: { hash: data.cardToken },
-            installments: 1,
-            customer: { ...hypercashCustomer, externalRef: upsellExternalId },
-            shipping: { fee: 0, address },
-            items: [
-              {
-                title: upsellProduct.title,
-                unitPrice: upsellCents,
-                quantity: 1,
-                tangible: true,
-                externalRef: upsellProduct.slug,
-              },
-            ],
-            ...(host ? { postbackUrl: `https://${host}/api/webhooks/hypercash` } : {}),
-            metadata: JSON.stringify({ externalId: upsellExternalId, upsellOf: tx.id }),
-            ...(ip ? { ip } : {}),
-          }),
-        });
-        const body = (await response.json().catch(() => null)) as {
-          data?: HypercashTransaction;
-          message?: unknown;
-        } | null;
-        if (!response.ok || !body?.data) {
-          console.error("Upsell falhou:", response.status, JSON.stringify(body));
-          await saveCardOrder({
-            id: upsellExternalId,
-            status: "failed",
-            failureReason: `Upsell: HyperCash ${response.status}: ${apiErrorText(body)}`,
-            upsell,
-          });
-        } else {
-          const upsellTx = body.data;
-          const upsellStatus = upsellTx.status.toUpperCase();
-          if (REFUSED.has(upsellStatus)) {
-            await saveCardOrder({
-              id: upsellTx.id,
-              status: "failed",
-              failureReason: `Upsell: ${upsellTx.refusedReason || "Recusado (sem motivo informado)"}`,
-              upsell,
-            });
-          } else {
-            await saveCardOrder({
-              id: upsellTx.id,
-              status: "pending",
-              failureReason: null,
-              upsell,
-            });
-            await sendUtmifyOrder({
-              orderId: upsellExternalId,
-              status: "waiting_payment",
-              createdAt: new Date(),
-              customer: { name, email: email || null, phone: phone || null, document },
-              products: upsell.items.map((item) => ({
-                id: item.slug,
-                name: item.title,
-                quantity: item.quantity,
-                priceInCents: upsellCents,
-              })),
-              trackingParameters,
-            });
-            if (upsellStatus === "PAID") await applyHypercashStatus(upsellTx);
-          }
-        }
-      } catch (error) {
-        console.error("Upsell sem resposta:", error);
-      }
+    if (APPROVED.has(status)) {
+      await chargeUpsell(
+        {
+          external_id: externalId,
+          customer_name: name,
+          customer_email: email || null,
+          customer_phone: phone || null,
+          customer_document: document,
+          address_cep: cep,
+          address_street: address.street,
+          address_number: address.streetNumber,
+          address_complement: data.address.complement.trim() || null,
+          address_neighborhood: address.neighborhood,
+          address_city: address.city,
+          address_state: state,
+          items,
+          tracking_parameters: trackingParameters,
+        },
+        data.cardToken,
+        { host, ip },
+      );
     }
 
     return {
@@ -475,7 +395,227 @@ export const createCardOrder = createServerFn({ method: "POST" })
     };
   });
 
-const UPSELL_TEST_SLUG = "upsell-kit-10-calcados-masculinos-sortidos";
+const UPSELL_SLUG = "upsell-kit-10-calcados-masculinos-sortidos";
+
+type CardOrderInsert = Omit<
+  SagacepayOrderRow,
+  | "tracking_parameters"
+  | "failure_reason"
+  | "paid_at"
+  | "dispatched_at"
+  | "created_at"
+  | "updated_at"
+>;
+
+async function insertCardOrder(
+  row: CardOrderInsert,
+  trackingParameters: SagacepayOrderRow["tracking_parameters"],
+  failureReason: string | null,
+) {
+  const admin = getSupabaseAdmin();
+  if (!admin) return;
+  // Colunas opcionais (migrations que podem não ter sido aplicadas): tenta com elas, depois sem.
+  let { error } = await admin.from("sagacepay_orders").insert({
+    ...row,
+    tracking_parameters: trackingParameters,
+    ...(failureReason ? { failure_reason: failureReason } : {}),
+  });
+  if (error) {
+    ({ error } = await admin
+      .from("sagacepay_orders")
+      .insert({ ...row, tracking_parameters: trackingParameters }));
+  }
+  if (error) ({ error } = await admin.from("sagacepay_orders").insert(row));
+  if (error) console.error("Erro ao gravar pedido de cartão:", error);
+}
+
+type UpsellSource = Pick<
+  SagacepayOrderRow,
+  | "external_id"
+  | "customer_name"
+  | "customer_email"
+  | "customer_phone"
+  | "customer_document"
+  | "address_cep"
+  | "address_street"
+  | "address_number"
+  | "address_complement"
+  | "address_neighborhood"
+  | "address_city"
+  | "address_state"
+  | "items"
+  | "tracking_parameters"
+>;
+
+async function chargeUpsell(
+  order: UpsellSource,
+  cardToken: string,
+  request: { host: string | undefined; ip: string | undefined },
+) {
+  try {
+    const product = getProductBySlug(UPSELL_SLUG);
+    const admin = getSupabaseAdmin();
+    if (!product || !admin) return;
+    const externalId = `upsell-${order.external_id}`;
+    const { data: existing } = await admin
+      .from("sagacepay_orders")
+      .select("id")
+      .eq("external_id", externalId)
+      .maybeSingle();
+    if (existing) return;
+
+    const amountCents = Math.round(product.price * 100);
+    const items: SagacepayOrderItem[] = [
+      {
+        slug: product.slug,
+        title: product.title,
+        size: order.items[0]?.size ?? "",
+        quantity: 1,
+        price: product.price,
+      },
+    ];
+    const document = order.customer_document;
+    const address = {
+      street: order.address_street,
+      streetNumber: order.address_number,
+      ...(order.address_complement ? { complement: order.address_complement } : {}),
+      zipCode: order.address_cep,
+      neighborhood: order.address_neighborhood,
+      city: order.address_city,
+      state: order.address_state,
+      country: "BR",
+    };
+    const save = (id: string, status: "pending" | "failed", failureReason: string | null) =>
+      insertCardOrder(
+        {
+          id,
+          external_id: externalId,
+          status,
+          amount: product.price,
+          customer_name: order.customer_name,
+          customer_email: order.customer_email,
+          customer_phone: order.customer_phone,
+          customer_document: document,
+          address_cep: order.address_cep,
+          address_street: order.address_street,
+          address_number: order.address_number,
+          address_complement: order.address_complement,
+          address_neighborhood: order.address_neighborhood,
+          address_city: order.address_city,
+          address_state: order.address_state,
+          items,
+          pix_code: null,
+          pix_qr_code: null,
+        },
+        order.tracking_parameters,
+        failureReason,
+      );
+
+    const response = await fetch(`${HYPERCASH_API_BASE}/user/transactions`, {
+      method: "POST",
+      headers: { Authorization: authHeader(getSecretKey()), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: amountCents,
+        currency: "BRL",
+        paymentMethod: "CREDIT_CARD",
+        card: { hash: cardToken },
+        installments: 1,
+        customer: {
+          name: order.customer_name,
+          email: order.customer_email ?? "",
+          phone: order.customer_phone ?? "",
+          document: { number: document, type: document.length === 14 ? "CNPJ" : "CPF" },
+          externalRef: externalId,
+          address,
+        },
+        shipping: { fee: 0, address },
+        items: [
+          {
+            title: product.title,
+            unitPrice: amountCents,
+            quantity: 1,
+            tangible: true,
+            externalRef: product.slug,
+          },
+        ],
+        ...(request.host ? { postbackUrl: `https://${request.host}/api/webhooks/hypercash` } : {}),
+        metadata: JSON.stringify({ externalId }),
+        ...(request.ip ? { ip: request.ip } : {}),
+      }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      data?: HypercashTransaction;
+      message?: unknown;
+    } | null;
+    if (!response.ok || !body?.data) {
+      console.error("Upsell falhou:", response.status, JSON.stringify(body));
+      await save(
+        externalId,
+        "failed",
+        `Upsell: HyperCash ${response.status}: ${apiErrorText(body)}`,
+      );
+      return;
+    }
+    const tx = body.data;
+    const status = tx.status.toUpperCase();
+    if (REFUSED.has(status)) {
+      await save(
+        tx.id,
+        "failed",
+        `Upsell: ${tx.refusedReason || "Recusado (sem motivo informado)"}`,
+      );
+      return;
+    }
+    await save(tx.id, "pending", null);
+    await sendUtmifyOrder({
+      orderId: externalId,
+      status: "waiting_payment",
+      createdAt: new Date(),
+      customer: {
+        name: order.customer_name,
+        email: order.customer_email,
+        phone: order.customer_phone,
+        document,
+      },
+      products: items.map((item) => ({
+        id: item.slug,
+        name: item.title,
+        quantity: item.quantity,
+        priceInCents: amountCents,
+      })),
+      trackingParameters: order.tracking_parameters,
+    });
+    if (status === "PAID") await applyHypercashStatus(tx);
+  } catch (error) {
+    console.error("Upsell sem resposta:", error);
+  }
+}
+
+export const chargeCardUpsell = createServerFn({ method: "POST" })
+  .validator((input: { orderId: string; cardToken: string }) => input)
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    try {
+      const tx = await fetchHypercashTransaction(data.orderId);
+      if (!tx || !APPROVED.has(tx.status.toUpperCase())) return { ok: false };
+      const admin = getSupabaseAdmin();
+      if (!admin) return { ok: false };
+      const { data: order } = await admin
+        .from("sagacepay_orders")
+        .select("*")
+        .eq("id", data.orderId)
+        .maybeSingle();
+      const row = order as SagacepayOrderRow | null;
+      if (!row || row.external_id.startsWith("upsell-")) return { ok: false };
+      await chargeUpsell(row, data.cardToken, {
+        host: getRequestHeader("x-forwarded-host") || getRequestHeader("host"),
+        ip: getRequestHeader("cf-connecting-ip") || getRequestIP({ xForwardedFor: true }),
+      });
+      return { ok: true };
+    } catch (error) {
+      console.error("Upsell após análise falhou:", error);
+      return { ok: false };
+    }
+  });
 
 /** Usado pelo checkout enquanto o cartão está em análise: confere na HyperCash e atualiza. */
 export const getCardOrderStatus = createServerFn({ method: "POST" })

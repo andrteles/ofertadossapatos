@@ -61,7 +61,12 @@ import { useCart } from "@/lib/cart";
 import { formatInstallmentsComJuros, formatPrice, isSingleSize } from "@/lib/format";
 import { getProductBySlug } from "@/lib/products";
 import { CARD_BRAND_ICONS, detectCardBrand } from "@/lib/card-brands";
-import { createCardOrder, getCardOrderStatus, getCardPublicKey } from "@/lib/hypercash";
+import {
+  chargeCardUpsell,
+  createCardOrder,
+  getCardOrderStatus,
+  getCardPublicKey,
+} from "@/lib/hypercash";
 import {
   createCheckoutOrder,
   getOrderStatus,
@@ -152,6 +157,8 @@ type FastSoftSdk = {
 };
 
 let fastSoftPromise: Promise<FastSoftSdk> | null = null;
+
+const pendingUpsellTokens = new Map<string, string>();
 
 /** Mensagem da gaveta quando o cartão é recusado: a mesma da referência, com "A loja" no lugar
  * do nome do gateway. */
@@ -1077,6 +1084,7 @@ function CustomerForm({
     const snapshot = orderSnapshot();
     const paid = result.status === "paid";
     if (paid) trackCardPurchase(result.orderId, result.amount, snapshot);
+    else pendingUpsellTokens.set(result.orderId, cardToken);
     onCardOrder({
       orderId: result.orderId,
       pixCode: "",
@@ -2704,6 +2712,13 @@ function SuccessScreen({
           stopped = true;
           clearInterval(interval);
           trackCardPurchase(current.orderId, current.amount, current.snapshot);
+          const upsellToken = pendingUpsellTokens.get(current.orderId);
+          if (upsellToken) {
+            pendingUpsellTokens.delete(current.orderId);
+            void chargeCardUpsell({
+              data: { orderId: current.orderId, cardToken: upsellToken },
+            }).catch(() => undefined);
+          }
           clear();
           onUpdate({ ...current, card: { ...current.card!, status: "paid" } });
         } else if (result.status === "failed") {
