@@ -34,6 +34,7 @@ export interface OrderListItem {
   paidAt: string | null;
   dispatchedAt: string | null;
   createdAt: string;
+  failureReason: string | null;
   /** Pedido de Pix sempre grava o código Pix; o de cartão grava null. */
   paymentMethod: "pix" | "card";
 }
@@ -41,12 +42,20 @@ export interface OrderListItem {
 export const listOrders = createServerFn({ method: "GET" }).handler(
   async (): Promise<OrderListItem[]> => {
     await requireSession();
-    const { data, error } = await requireAdmin()
+    const columns =
+      "id, status, amount, customer_name, customer_phone, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, pix_code, paid_at, dispatched_at, created_at";
+    const admin = requireAdmin();
+    // failure_reason vem de uma migration opcional: se a coluna não existir, lista sem ela.
+    const withReason = await admin
       .from("sagacepay_orders")
-      .select(
-        "id, status, amount, customer_name, customer_phone, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, pix_code, paid_at, dispatched_at, created_at",
-      )
+      .select(`${columns}, failure_reason`)
       .order("created_at", { ascending: false });
+    const { data, error } = withReason.error
+      ? await admin
+          .from("sagacepay_orders")
+          .select(columns)
+          .order("created_at", { ascending: false })
+      : withReason;
     if (error || !data) return [];
 
     return data.map((row) => ({
@@ -67,6 +76,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
       dispatchedAt: row["dispatched_at"] as string | null,
       createdAt: row["created_at"] as string,
       paymentMethod: row["pix_code"] ? "pix" : "card",
+      failureReason: ((row as Record<string, unknown>)["failure_reason"] as string | null) ?? null,
     }));
   },
 );

@@ -72,7 +72,9 @@ const TRACKING_KEYS = [
 ] as const;
 
 /** Vem do navegador, então só aceita as chaves conhecidas e limita o tamanho. */
-function sanitizeTrackingParameters(input: TrackingParameters | undefined): TrackingParameters {
+export function sanitizeTrackingParameters(
+  input: TrackingParameters | undefined,
+): TrackingParameters {
   const result: TrackingParameters = {};
   for (const key of TRACKING_KEYS) {
     const value = input?.[key];
@@ -87,7 +89,7 @@ interface CheckoutItemInput {
   quantity: number;
 }
 
-interface CreateCheckoutOrderInput {
+export interface CreateCheckoutOrderInput {
   items: CheckoutItemInput[];
   customer: {
     name: string;

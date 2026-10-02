@@ -165,6 +165,9 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
                   {STATUS_LABEL[order.status] ?? order.status}
                 </Badge>
               </div>
+              {order.status === "failed" && order.failureReason ? (
+                <p className="text-xs text-red-700">Motivo: {order.failureReason}</p>
+              ) : null}
               <p className="text-xs text-muted-foreground">{order.address}</p>
               <div className="text-xs">
                 {order.items.map((item, index) => (

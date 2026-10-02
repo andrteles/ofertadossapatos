@@ -56,6 +56,7 @@ export type SagacepayOrderRow = {
   paid_at: string | null;
   dispatched_at: string | null;
   tracking_parameters: TrackingParameters | null;
+  failure_reason?: string | null;
   created_at: string;
   updated_at: string;
 };
