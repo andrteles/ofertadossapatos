@@ -175,7 +175,12 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
                 <p className="text-xs text-muted-foreground">
                   {new Date(order.createdAt).toLocaleString("pt-BR")}
                 </p>
-                <p className="text-sm font-medium">{formatPrice(order.amount)}</p>
+                <p className="text-sm font-medium">
+                  <span className="font-normal text-muted-foreground">
+                    {order.paymentMethod === "pix" ? "Pix" : "Cartão"} ·{" "}
+                  </span>
+                  {formatPrice(order.amount)}
+                </p>
               </div>
             </div>
           ))}

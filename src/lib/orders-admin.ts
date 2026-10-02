@@ -34,6 +34,8 @@ export interface OrderListItem {
   paidAt: string | null;
   dispatchedAt: string | null;
   createdAt: string;
+  /** Pedido de Pix sempre grava o código Pix; o de cartão grava null. */
+  paymentMethod: "pix" | "card";
 }
 
 export const listOrders = createServerFn({ method: "GET" }).handler(
@@ -42,7 +44,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
     const { data, error } = await requireAdmin()
       .from("sagacepay_orders")
       .select(
-        "id, status, amount, customer_name, customer_phone, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, paid_at, dispatched_at, created_at",
+        "id, status, amount, customer_name, customer_phone, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, pix_code, paid_at, dispatched_at, created_at",
       )
       .order("created_at", { ascending: false });
     if (error || !data) return [];
@@ -64,6 +66,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
       paidAt: row["paid_at"] as string | null,
       dispatchedAt: row["dispatched_at"] as string | null,
       createdAt: row["created_at"] as string,
+      paymentMethod: row["pix_code"] ? "pix" : "card",
     }));
   },
 );
