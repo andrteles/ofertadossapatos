@@ -650,6 +650,18 @@ function CheckoutPage() {
     return () => clearTimeout(timer);
   }, [orderId]);
 
+  // Como na referência: a página do pedido (Pix gerado ou pedido confirmado, no Pix e no cartão)
+  // tem outro título de aba.
+  const onOrderPage = Boolean(order || paidOrder);
+  useEffect(() => {
+    if (!onOrderPage) return;
+    const previous = document.title;
+    document.title = "Pedido Finalizado | Outlet";
+    return () => {
+      document.title = previous;
+    };
+  }, [onOrderPage]);
+
   function handleCreated(created: PixOrder) {
     try {
       window.sessionStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(created));
@@ -2875,29 +2887,20 @@ function SuccessScreen({
                           style={{ color: "transparent", width: 80, height: 80 }}
                         />
                       ) : null}
-                      {card ? (
-                        <div>
-                          <div
-                            id={`order-summary-product-name-${index}`}
-                            className={cn("flex font-medium", tone.strong)}
-                          >
-                            {item.title}
-                          </div>
-                          {/* Como na referência: 2ª linha é a descrição (lá, igual ao título). O
-                           * tamanho segue o mesmo formato da página do Pix. */}
-                          <div className={cn("mt-1 truncate", tone.muted)}>{item.title}</div>
-                          {!isSingleSize(item.size) ? (
-                            <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
-                          ) : null}
+                      {/* Igual à referência no cartão e no Pix: 2ª linha é a descrição (lá,
+                       * igual ao título), depois o tamanho. */}
+                      <div>
+                        <div
+                          id={`order-summary-product-name-${index}`}
+                          className={cn("flex font-medium", tone.strong)}
+                        >
+                          {item.title}
                         </div>
-                      ) : (
-                        <div className="min-w-0 flex-1">
-                          <div className="flex font-medium text-[#01131A]">{item.title}</div>
-                          {!isSingleSize(item.size) ? (
-                            <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
-                          ) : null}
-                        </div>
-                      )}
+                        <div className={cn("mt-1 truncate", tone.muted)}>{item.title}</div>
+                        {!isSingleSize(item.size) ? (
+                          <div className="mt-1 truncate text-[#64737E]">Tam. {item.size}</div>
+                        ) : null}
+                      </div>
                     </div>
                   </td>
                   <td
