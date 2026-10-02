@@ -291,9 +291,12 @@ function ComboField({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
-          <Command>
-            <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+        <PopoverContent
+          className="w-full rounded-[6px] border-[#e5e7eb] bg-white p-0 text-[#030712] shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
+          align="start"
+        >
+          <Command className="rounded-[6px] bg-white text-[#030712]">
+            <div className="flex items-center border-b border-[#e5e7eb] px-3" cmdk-input-wrapper="">
               <svg
                 width="15"
                 height="15"
@@ -310,18 +313,18 @@ function ComboField({
                 />
               </svg>
               <CommandPrimitive.Input
-                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-[6px] bg-transparent py-3 text-sm outline-none placeholder:text-[#6b7280] disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder={searchPlaceholder}
               />
             </div>
             <CommandList>
               <CommandEmpty>Nenhum resultado.</CommandEmpty>
-              <CommandGroup>
+              <CommandGroup className="text-[#030712]">
                 {options.map((option) => (
                   <CommandItem
                     key={option.key}
                     value={option.value}
-                    className="data-[selected=true]:bg-[hsl(220_14.3%_95.9%)] data-[selected=true]:text-[hsl(220.9_39.3%_11%)]"
+                    className="rounded-[4px] data-[selected=true]:bg-[hsl(220_14.3%_95.9%)] data-[selected=true]:text-[hsl(220.9_39.3%_11%)]"
                     onSelect={() => {
                       onSelect(option.key);
                       setOpen(false);
