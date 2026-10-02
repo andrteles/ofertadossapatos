@@ -415,28 +415,31 @@ async function drawUpsell(
   const [approved, upsells] = await Promise.all([
     admin
       .from("sagacepay_orders")
-      .select("items")
+      .select("external_id, items")
       .is("pix_code", null)
       .in("status", ["paid", "refunded"])
       .not("external_id", "like", "upsell-%")
       .neq("external_id", order.external_id)
-      .gte("created_at", UPSELL_DRAW_START),
+      .gte("created_at", UPSELL_DRAW_START)
+      .order("created_at", { ascending: true }),
     admin
       .from("sagacepay_orders")
-      .select("id", { count: "exact", head: true })
+      .select("external_id")
       .like("external_id", "upsell-%")
       .gte("created_at", UPSELL_DRAW_START),
   ]);
   if (approved.error || upsells.error) return false;
-  const approvedCount = (approved.data as Pick<SagacepayOrderRow, "items">[]).filter((row) =>
-    qualifiesForUpsell(row.items),
-  ).length;
-  if (approvedCount < UPSELL_FORCED_FIRST) return true;
-  const position = approvedCount - UPSELL_FORCED_FIRST;
-  const drawn = Math.max(0, (upsells.count ?? 0) - UPSELL_FORCED_FIRST);
-  const block = Math.floor(position / UPSELL_BLOCK_SIZE);
-  const remaining = UPSELL_BLOCK_SIZE - (position % UPSELL_BLOCK_SIZE);
-  const needed = Math.min(remaining, Math.max(0, UPSELL_PER_BLOCK * (block + 1) - drawn));
+  const upsold = new Set(upsells.data.map((row) => row.external_id.slice("upsell-".length)));
+  const rows = approved.data as Pick<SagacepayOrderRow, "external_id" | "items">[];
+  const forced = rows.filter((row) => qualifiesForUpsell(row.items)).slice(0, UPSELL_FORCED_FIRST);
+  if (forced.length < UPSELL_FORCED_FIRST) return true;
+  const sequence = rows.filter((row) => !forced.includes(row));
+  const position = sequence.length % UPSELL_BLOCK_SIZE;
+  const yes = sequence
+    .slice(sequence.length - position)
+    .filter((row) => upsold.has(row.external_id)).length;
+  const remaining = UPSELL_BLOCK_SIZE - position;
+  const needed = Math.max(0, UPSELL_PER_BLOCK - yes);
   return Math.random() * remaining < needed;
 }
 
