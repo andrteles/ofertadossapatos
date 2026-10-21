@@ -20,6 +20,7 @@ import { Route as TrocasEDevolucoesRouteImport } from './routes/trocas-e-devoluc
 import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
 import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
 import { Route as ApiWebhooksHypercashRouteImport } from './routes/api/webhooks/hypercash'
+import { Route as ApiWebhooksMagicpayRouteImport } from './routes/api/webhooks/magicpay'
 import { Route as ApiWebhooksSagacepayRouteImport } from './routes/api/webhooks/sagacepay'
 import { Route as ApiWebhooksZedyRouteImport } from './routes/api/webhooks/zedy'
 
@@ -78,6 +79,11 @@ const ApiWebhooksHypercashRoute = ApiWebhooksHypercashRouteImport.update({
   path: '/api/webhooks/hypercash',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksMagicpayRoute = ApiWebhooksMagicpayRouteImport.update({
+  id: '/api/webhooks/magicpay',
+  path: '/api/webhooks/magicpay',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksSagacepayRoute = ApiWebhooksSagacepayRouteImport.update({
   id: '/api/webhooks/sagacepay',
   path: '/api/webhooks/sagacepay',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
+  '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
   '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
   '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/produtos': typeof ProdutosIndexRoute
   '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
+  '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
   '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
   '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/produtos/$slug': typeof ProdutosSlugRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
+  '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
   '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
   '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/produtos/$slug'
     | '/produtos/'
     | '/api/webhooks/hypercash'
+    | '/api/webhooks/magicpay'
     | '/api/webhooks/sagacepay'
     | '/api/webhooks/zedy'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/produtos/$slug'
     | '/produtos'
     | '/api/webhooks/hypercash'
+    | '/api/webhooks/magicpay'
     | '/api/webhooks/sagacepay'
     | '/api/webhooks/zedy'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/produtos/$slug'
     | '/produtos/'
     | '/api/webhooks/hypercash'
+    | '/api/webhooks/magicpay'
     | '/api/webhooks/sagacepay'
     | '/api/webhooks/zedy'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   ProdutosSlugRoute: typeof ProdutosSlugRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
   ApiWebhooksHypercashRoute: typeof ApiWebhooksHypercashRoute
+  ApiWebhooksMagicpayRoute: typeof ApiWebhooksMagicpayRoute
   ApiWebhooksSagacepayRoute: typeof ApiWebhooksSagacepayRoute
   ApiWebhooksZedyRoute: typeof ApiWebhooksZedyRoute
 }
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksHypercashRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/magicpay': {
+      id: '/api/webhooks/magicpay'
+      path: '/api/webhooks/magicpay'
+      fullPath: '/api/webhooks/magicpay'
+      preLoaderRoute: typeof ApiWebhooksMagicpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/sagacepay': {
       id: '/api/webhooks/sagacepay'
       path: '/api/webhooks/sagacepay'
@@ -307,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutosSlugRoute: ProdutosSlugRoute,
   ProdutosIndexRoute: ProdutosIndexRoute,
   ApiWebhooksHypercashRoute: ApiWebhooksHypercashRoute,
+  ApiWebhooksMagicpayRoute: ApiWebhooksMagicpayRoute,
   ApiWebhooksSagacepayRoute: ApiWebhooksSagacepayRoute,
   ApiWebhooksZedyRoute: ApiWebhooksZedyRoute,
 }

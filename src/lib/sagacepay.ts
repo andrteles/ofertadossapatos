@@ -1,5 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 
+import {
+  createMagicpayPix,
+  fetchMagicpayTransaction,
+  applyMagicpayStatus,
+  isMagicpayOrderId,
+  isPixGatewayMagicpay,
+} from "@/lib/magicpay";
 import { getProductBySlug } from "@/lib/products";
 import { sendUtmifyOrder } from "@/lib/utmify";
 import type { TrackingParameters } from "@/lib/utm";
@@ -161,55 +169,84 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
 
     const externalId = crypto.randomUUID();
 
-    let apiKey: string;
-    try {
-      apiKey = getApiKey();
-    } catch (error) {
-      console.error(error);
-      return {
-        ok: false,
-        reason: "Pagamento indisponível no momento. Tente novamente em instantes.",
-      };
-    }
-
     let sale: SagacepaySaleResponse;
-    try {
-      const response = await fetch(`${SAGACEPAY_API_BASE}/sales`, {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "Content-Type": "application/json",
-          "idempotency-key": externalId,
+    if (isPixGatewayMagicpay()) {
+      const created = await createMagicpayPix({
+        externalId,
+        amount,
+        customer: {
+          name: data.customer.name.trim(),
+          email: data.customer.email.trim(),
+          phone: onlyDigits(data.customer.phone),
+          document,
         },
-        body: JSON.stringify({
-          amount,
-          customer: {
-            document,
-            name: data.customer.name.trim(),
-            ...(data.customer.email.trim() ? { email: data.customer.email.trim() } : {}),
-            ...(onlyDigits(data.customer.phone) ? { phone: onlyDigits(data.customer.phone) } : {}),
-          },
-          description: "Compra online",
-          items: items.map((item) => ({
-            description: "Produto",
-            quantity: item.quantity,
-            unitPrice: item.price,
-            tangible: true,
-          })),
-          externalId,
-        }),
+        address: {
+          cep,
+          street: data.address.street.trim(),
+          number: data.address.number.trim(),
+          complement: data.address.complement.trim(),
+          neighborhood: data.address.neighborhood.trim(),
+          city: data.address.city.trim(),
+          state,
+        },
+        items,
+        host: getRequestHeader("x-forwarded-host") || getRequestHeader("host"),
+        ip: getRequestHeader("cf-connecting-ip") || getRequestIP({ xForwardedFor: true }),
       });
-      if (!response.ok) {
-        console.error("SagacePay /sales falhou:", response.status, await response.text());
+      if (!created.ok) return created;
+      sale = created.sale;
+    } else {
+      let apiKey: string;
+      try {
+        apiKey = getApiKey();
+      } catch (error) {
+        console.error(error);
         return {
           ok: false,
-          reason: "Não foi possível gerar o Pix. Confira os dados e tente de novo.",
+          reason: "Pagamento indisponível no momento. Tente novamente em instantes.",
         };
       }
-      sale = (await response.json()) as SagacepaySaleResponse;
-    } catch (error) {
-      console.error("SagacePay /sales sem resposta:", error);
-      return { ok: false, reason: "Erro de conexão com o gateway de pagamento." };
+
+      try {
+        const response = await fetch(`${SAGACEPAY_API_BASE}/sales`, {
+          method: "POST",
+          headers: {
+            "x-api-key": apiKey,
+            "Content-Type": "application/json",
+            "idempotency-key": externalId,
+          },
+          body: JSON.stringify({
+            amount,
+            customer: {
+              document,
+              name: data.customer.name.trim(),
+              ...(data.customer.email.trim() ? { email: data.customer.email.trim() } : {}),
+              ...(onlyDigits(data.customer.phone)
+                ? { phone: onlyDigits(data.customer.phone) }
+                : {}),
+            },
+            description: "Compra online",
+            items: items.map((item) => ({
+              description: "Produto",
+              quantity: item.quantity,
+              unitPrice: item.price,
+              tangible: true,
+            })),
+            externalId,
+          }),
+        });
+        if (!response.ok) {
+          console.error("SagacePay /sales falhou:", response.status, await response.text());
+          return {
+            ok: false,
+            reason: "Não foi possível gerar o Pix. Confira os dados e tente de novo.",
+          };
+        }
+        sale = (await response.json()) as SagacepaySaleResponse;
+      } catch (error) {
+        console.error("SagacePay /sales sem resposta:", error);
+        return { ok: false, reason: "Erro de conexão com o gateway de pagamento." };
+      }
     }
 
     // O QR code é desenhado no navegador a partir do pixCode (a URL de imagem da SagacePay
@@ -284,6 +321,16 @@ export const getOrderStatus = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .single();
     if (row?.status !== "pending") return { status: row?.status ?? "unknown" };
+
+    if (isMagicpayOrderId(data.orderId)) {
+      try {
+        const tx = await fetchMagicpayTransaction(data.orderId);
+        if (tx) return { status: await applyMagicpayStatus(tx) };
+      } catch (error) {
+        console.error("MagicPay consulta de status falhou:", error);
+      }
+      return { status: row?.status ?? "unknown" };
+    }
 
     // Ainda pending no nosso banco: confere direto na SagacePay, para não depender só do webhook
     // (não cadastrado, atrasado ou com segredo errado).
