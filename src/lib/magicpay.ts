@@ -4,8 +4,9 @@ import { sendUtmifyOrder } from "@/lib/utmify";
 const MAGICPAY_API_BASE = "https://api.dashboardmagicpay.com/v1";
 const MAGICPAY_ID_PREFIX = "mp-";
 
-export function isPixGatewayMagicpay(): boolean {
-  return process.env["PIX_GATEWAY"]?.trim().toLowerCase() === "magicpay";
+export function getPixGateway(): "magicpay" | "sagacepay" | null {
+  const gateway = process.env["PIX_GATEWAY"]?.trim().toLowerCase();
+  return gateway === "magicpay" || gateway === "sagacepay" ? gateway : null;
 }
 
 export function isMagicpayOrderId(orderId: string): boolean {

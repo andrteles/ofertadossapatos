@@ -6,7 +6,7 @@ import {
   fetchMagicpayTransaction,
   applyMagicpayStatus,
   isMagicpayOrderId,
-  isPixGatewayMagicpay,
+  getPixGateway,
 } from "@/lib/magicpay";
 import { getProductBySlug } from "@/lib/products";
 import { sendUtmifyOrder } from "@/lib/utmify";
@@ -167,10 +167,19 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
       });
     }
 
+    const gateway = getPixGateway();
+    if (!gateway) {
+      console.error("PIX_GATEWAY inválido ou ausente:", process.env["PIX_GATEWAY"]);
+      return {
+        ok: false,
+        reason: "Pagamento indisponível no momento. Tente novamente em instantes.",
+      };
+    }
+
     const externalId = crypto.randomUUID();
 
     let sale: SagacepaySaleResponse;
-    if (isPixGatewayMagicpay()) {
+    if (gateway === "magicpay") {
       const created = await createMagicpayPix({
         externalId,
         amount,
