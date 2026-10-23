@@ -5,6 +5,7 @@ import { isSingleSize } from "@/lib/format";
 import { getPixelAuthState } from "@/lib/pixel-settings";
 import { isValidPixelSessionToken, PIXEL_SESSION_COOKIE } from "@/lib/pixel-session";
 import { getSupabaseAdmin, type SagacepayOrderItem } from "@/lib/supabase-admin";
+import type { TrackingParameters } from "@/lib/utm";
 
 function requireAdmin() {
   const admin = getSupabaseAdmin();
@@ -37,6 +38,7 @@ export interface OrderListItem {
   failureReason: string | null;
   /** Pedido de Pix sempre grava o código Pix; o de cartão grava null. */
   paymentMethod: "pix" | "card";
+  fromTiktok: boolean;
 }
 
 export const listOrders = createServerFn({ method: "GET" }).handler(
@@ -45,17 +47,18 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
     const columns =
       "id, status, amount, customer_name, customer_phone, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, pix_code, paid_at, dispatched_at, created_at";
     const admin = requireAdmin();
-    // failure_reason vem de uma migration opcional: se a coluna não existir, lista sem ela.
-    const withReason = await admin
-      .from("sagacepay_orders")
-      .select(`${columns}, failure_reason`)
-      .order("created_at", { ascending: false });
-    const { data, error } = withReason.error
-      ? await admin
-          .from("sagacepay_orders")
-          .select(columns)
-          .order("created_at", { ascending: false })
-      : withReason;
+    const fetchOrders = async (select: string) =>
+      (await admin
+        .from("sagacepay_orders")
+        .select(select)
+        .order("created_at", { ascending: false })) as unknown as {
+        data: Record<string, unknown>[] | null;
+        error: unknown;
+      };
+    let result = await fetchOrders(`${columns}, failure_reason, tracking_parameters`);
+    if (result.error) result = await fetchOrders(`${columns}, failure_reason`);
+    if (result.error) result = await fetchOrders(columns);
+    const { data, error } = result;
     if (error || !data) return [];
 
     return data.map((row) => ({
@@ -77,6 +80,9 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
       createdAt: row["created_at"] as string,
       paymentMethod: row["pix_code"] ? "pix" : "card",
       failureReason: ((row as Record<string, unknown>)["failure_reason"] as string | null) ?? null,
+      fromTiktok: /tiktok/i.test(
+        (row["tracking_parameters"] as TrackingParameters | null)?.utm_source ?? "",
+      ),
     }));
   },
 );
