@@ -174,14 +174,14 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">{order.customerName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDocument(order.customerDocument)}
-                  </p>
                   {order.customerPhone ? (
                     <p className="text-xs text-muted-foreground">
                       {formatPhone(order.customerPhone)}
                     </p>
                   ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    {formatDocument(order.customerDocument)}
+                  </p>
                   {order.customerEmail ? (
                     <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
                   ) : null}
