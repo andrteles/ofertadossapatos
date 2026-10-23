@@ -131,6 +131,15 @@ function LoginForm({ onDone }: { onDone: () => void }) {
 
 const PAGE_SIZE = 10;
 
+function formatDocument(document: string): string {
+  if (document.length === 11)
+    return document.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  if (document.length === 14) {
+    return document.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  }
+  return document;
+}
+
 function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: () => void }) {
   const [page, setPage] = useState(1);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -159,6 +168,9 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">{order.customerName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDocument(order.customerDocument)}
+                  </p>
                   {order.customerPhone ? (
                     <p className="text-xs text-muted-foreground">{order.customerPhone}</p>
                   ) : null}
