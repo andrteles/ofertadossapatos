@@ -140,6 +140,12 @@ function formatDocument(document: string): string {
   return document;
 }
 
+function formatPhone(phone: string): string {
+  const national = phone.length > 11 && phone.startsWith("55") ? phone.slice(2) : phone;
+  const match = /^(\d{2})(\d{4,5})(\d{4})$/.exec(national);
+  return match ? `+55 (${match[1]}) ${match[2]}-${match[3]}` : phone;
+}
+
 function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: () => void }) {
   const [page, setPage] = useState(1);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -172,7 +178,12 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
                     {formatDocument(order.customerDocument)}
                   </p>
                   {order.customerPhone ? (
-                    <p className="text-xs text-muted-foreground">{order.customerPhone}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatPhone(order.customerPhone)}
+                    </p>
+                  ) : null}
+                  {order.customerEmail ? (
+                    <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
                   ) : null}
                 </div>
                 <Badge variant="outline" className={STATUS_CLASS[order.status] ?? ""}>

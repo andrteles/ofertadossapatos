@@ -29,6 +29,7 @@ export interface OrderListItem {
   amount: number;
   customerName: string;
   customerPhone: string | null;
+  customerEmail: string | null;
   customerDocument: string;
   address: string;
   items: string[];
@@ -45,7 +46,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
   async (): Promise<OrderListItem[]> => {
     await requireSession();
     const columns =
-      "id, status, amount, customer_name, customer_phone, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, pix_code, paid_at, dispatched_at, created_at";
+      "id, status, amount, customer_name, customer_phone, customer_email, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, pix_code, paid_at, dispatched_at, created_at";
     const admin = requireAdmin();
     const fetchOrders = async (select: string) =>
       (await admin
@@ -67,6 +68,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
       amount: row["amount"] as number,
       customerName: row["customer_name"] as string,
       customerPhone: row["customer_phone"] as string | null,
+      customerEmail: row["customer_email"] as string | null,
       customerDocument: row["customer_document"] as string,
       address: `${row["address_street"]}, ${row["address_number"]}${
         row["address_complement"] ? ` - ${row["address_complement"]}` : ""
