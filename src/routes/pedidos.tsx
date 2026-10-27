@@ -202,7 +202,7 @@ function OrdersTable({ orders, onLogout }: { orders: OrderListItem[]; onLogout: 
               <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
                 <p className="text-xs text-muted-foreground">
                   {new Date(order.createdAt).toLocaleString("pt-BR")}
-                  {order.fromTiktok ? " · TikTok Ads" : ""}
+                  {order.adSource ? ` · ${order.adSource}` : ""}
                 </p>
                 <p className="text-sm font-medium">
                   <span className="font-normal text-muted-foreground">

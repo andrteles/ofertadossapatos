@@ -39,7 +39,13 @@ export interface OrderListItem {
   failureReason: string | null;
   /** Pedido de Pix sempre grava o código Pix; o de cartão grava null. */
   paymentMethod: "pix" | "card";
-  fromTiktok: boolean;
+  adSource: "TikTok Ads" | "Meta Ads" | null;
+}
+
+function getAdSource(utmSource: string): OrderListItem["adSource"] {
+  if (/tiktok/i.test(utmSource)) return "TikTok Ads";
+  if (/facebook|instagram|meta|^fb$|^ig$/i.test(utmSource)) return "Meta Ads";
+  return null;
 }
 
 export const listOrders = createServerFn({ method: "GET" }).handler(
@@ -82,7 +88,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(
       createdAt: row["created_at"] as string,
       paymentMethod: row["pix_code"] ? "pix" : "card",
       failureReason: ((row as Record<string, unknown>)["failure_reason"] as string | null) ?? null,
-      fromTiktok: /tiktok/i.test(
+      adSource: getAdSource(
         (row["tracking_parameters"] as TrackingParameters | null)?.utm_source ?? "",
       ),
     }));
