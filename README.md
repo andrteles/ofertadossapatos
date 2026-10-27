@@ -4,11 +4,11 @@ Crie a home de uma loja de sapatos masculinos.
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://ofertadossapatos2.lovable.app
+**Live app**: (preencher após criar o projeto no Lovable)
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/66d7ba37-93ba-4e78-9e5f-23f464d3ee5f).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/5069db58-8a4e-49b2-a5eb-661e14bf6edd).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.

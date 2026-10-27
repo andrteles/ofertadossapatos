@@ -10,33 +10,206 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as FaleConoscoRouteImport } from './routes/fale-conosco'
+import { Route as FreteEEntregaRouteImport } from './routes/frete-e-entrega'
+import { Route as PedidosRouteImport } from './routes/pedidos'
+import { Route as PixelRouteImport } from './routes/pixel'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
+import { Route as TrocasEDevolucoesRouteImport } from './routes/trocas-e-devolucoes'
+import { Route as ProdutosIndexRouteImport } from './routes/produtos/index'
+import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
+import { Route as ApiWebhooksHypercashRouteImport } from './routes/api/webhooks/hypercash'
+import { Route as ApiWebhooksMagicpayRouteImport } from './routes/api/webhooks/magicpay'
+import { Route as ApiWebhooksSagacepayRouteImport } from './routes/api/webhooks/sagacepay'
+import { Route as ApiWebhooksZedyRouteImport } from './routes/api/webhooks/zedy'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaleConoscoRoute = FaleConoscoRouteImport.update({
+  id: '/fale-conosco',
+  path: '/fale-conosco',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FreteEEntregaRoute = FreteEEntregaRouteImport.update({
+  id: '/frete-e-entrega',
+  path: '/frete-e-entrega',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedidosRoute = PedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PixelRoute = PixelRouteImport.update({
+  id: '/pixel',
+  path: '/pixel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrocasEDevolucoesRoute = TrocasEDevolucoesRouteImport.update({
+  id: '/trocas-e-devolucoes',
+  path: '/trocas-e-devolucoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutosIndexRoute = ProdutosIndexRouteImport.update({
+  id: '/produtos/',
+  path: '/produtos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutosSlugRoute = ProdutosSlugRouteImport.update({
+  id: '/produtos/$slug',
+  path: '/produtos/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksHypercashRoute = ApiWebhooksHypercashRouteImport.update({
+  id: '/api/webhooks/hypercash',
+  path: '/api/webhooks/hypercash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksMagicpayRoute = ApiWebhooksMagicpayRouteImport.update({
+  id: '/api/webhooks/magicpay',
+  path: '/api/webhooks/magicpay',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksSagacepayRoute = ApiWebhooksSagacepayRouteImport.update({
+  id: '/api/webhooks/sagacepay',
+  path: '/api/webhooks/sagacepay',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksZedyRoute = ApiWebhooksZedyRouteImport.update({
+  id: '/api/webhooks/zedy',
+  path: '/api/webhooks/zedy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/checkout': typeof CheckoutRoute
+  '/fale-conosco': typeof FaleConoscoRoute
+  '/frete-e-entrega': typeof FreteEEntregaRoute
+  '/pedidos': typeof PedidosRoute
+  '/pixel': typeof PixelRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/trocas-e-devolucoes': typeof TrocasEDevolucoesRoute
+  '/produtos/$slug': typeof ProdutosSlugRoute
+  '/produtos/': typeof ProdutosIndexRoute
+  '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
+  '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
+  '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
+  '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/checkout': typeof CheckoutRoute
+  '/fale-conosco': typeof FaleConoscoRoute
+  '/frete-e-entrega': typeof FreteEEntregaRoute
+  '/pedidos': typeof PedidosRoute
+  '/pixel': typeof PixelRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/trocas-e-devolucoes': typeof TrocasEDevolucoesRoute
+  '/produtos/$slug': typeof ProdutosSlugRoute
+  '/produtos': typeof ProdutosIndexRoute
+  '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
+  '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
+  '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
+  '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/checkout': typeof CheckoutRoute
+  '/fale-conosco': typeof FaleConoscoRoute
+  '/frete-e-entrega': typeof FreteEEntregaRoute
+  '/pedidos': typeof PedidosRoute
+  '/pixel': typeof PixelRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/trocas-e-devolucoes': typeof TrocasEDevolucoesRoute
+  '/produtos/$slug': typeof ProdutosSlugRoute
+  '/produtos/': typeof ProdutosIndexRoute
+  '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
+  '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
+  '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
+  '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/checkout'
+    | '/fale-conosco'
+    | '/frete-e-entrega'
+    | '/pedidos'
+    | '/pixel'
+    | '/politica-de-privacidade'
+    | '/trocas-e-devolucoes'
+    | '/produtos/$slug'
+    | '/produtos/'
+    | '/api/webhooks/hypercash'
+    | '/api/webhooks/magicpay'
+    | '/api/webhooks/sagacepay'
+    | '/api/webhooks/zedy'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/checkout'
+    | '/fale-conosco'
+    | '/frete-e-entrega'
+    | '/pedidos'
+    | '/pixel'
+    | '/politica-de-privacidade'
+    | '/trocas-e-devolucoes'
+    | '/produtos/$slug'
+    | '/produtos'
+    | '/api/webhooks/hypercash'
+    | '/api/webhooks/magicpay'
+    | '/api/webhooks/sagacepay'
+    | '/api/webhooks/zedy'
+  id:
+    | '__root__'
+    | '/'
+    | '/checkout'
+    | '/fale-conosco'
+    | '/frete-e-entrega'
+    | '/pedidos'
+    | '/pixel'
+    | '/politica-de-privacidade'
+    | '/trocas-e-devolucoes'
+    | '/produtos/$slug'
+    | '/produtos/'
+    | '/api/webhooks/hypercash'
+    | '/api/webhooks/magicpay'
+    | '/api/webhooks/sagacepay'
+    | '/api/webhooks/zedy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CheckoutRoute: typeof CheckoutRoute
+  FaleConoscoRoute: typeof FaleConoscoRoute
+  FreteEEntregaRoute: typeof FreteEEntregaRoute
+  PedidosRoute: typeof PedidosRoute
+  PixelRoute: typeof PixelRoute
+  PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  TrocasEDevolucoesRoute: typeof TrocasEDevolucoesRoute
+  ProdutosSlugRoute: typeof ProdutosSlugRoute
+  ProdutosIndexRoute: typeof ProdutosIndexRoute
+  ApiWebhooksHypercashRoute: typeof ApiWebhooksHypercashRoute
+  ApiWebhooksMagicpayRoute: typeof ApiWebhooksMagicpayRoute
+  ApiWebhooksSagacepayRoute: typeof ApiWebhooksSagacepayRoute
+  ApiWebhooksZedyRoute: typeof ApiWebhooksZedyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +221,115 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fale-conosco': {
+      id: '/fale-conosco'
+      path: '/fale-conosco'
+      fullPath: '/fale-conosco'
+      preLoaderRoute: typeof FaleConoscoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frete-e-entrega': {
+      id: '/frete-e-entrega'
+      path: '/frete-e-entrega'
+      fullPath: '/frete-e-entrega'
+      preLoaderRoute: typeof FreteEEntregaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedidos': {
+      id: '/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof PedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pixel': {
+      id: '/pixel'
+      path: '/pixel'
+      fullPath: '/pixel'
+      preLoaderRoute: typeof PixelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trocas-e-devolucoes': {
+      id: '/trocas-e-devolucoes'
+      path: '/trocas-e-devolucoes'
+      fullPath: '/trocas-e-devolucoes'
+      preLoaderRoute: typeof TrocasEDevolucoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtos/': {
+      id: '/produtos/'
+      path: '/produtos'
+      fullPath: '/produtos/'
+      preLoaderRoute: typeof ProdutosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtos/$slug': {
+      id: '/produtos/$slug'
+      path: '/produtos/$slug'
+      fullPath: '/produtos/$slug'
+      preLoaderRoute: typeof ProdutosSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/hypercash': {
+      id: '/api/webhooks/hypercash'
+      path: '/api/webhooks/hypercash'
+      fullPath: '/api/webhooks/hypercash'
+      preLoaderRoute: typeof ApiWebhooksHypercashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/magicpay': {
+      id: '/api/webhooks/magicpay'
+      path: '/api/webhooks/magicpay'
+      fullPath: '/api/webhooks/magicpay'
+      preLoaderRoute: typeof ApiWebhooksMagicpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/sagacepay': {
+      id: '/api/webhooks/sagacepay'
+      path: '/api/webhooks/sagacepay'
+      fullPath: '/api/webhooks/sagacepay'
+      preLoaderRoute: typeof ApiWebhooksSagacepayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/zedy': {
+      id: '/api/webhooks/zedy'
+      path: '/api/webhooks/zedy'
+      fullPath: '/api/webhooks/zedy'
+      preLoaderRoute: typeof ApiWebhooksZedyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CheckoutRoute: CheckoutRoute,
+  FaleConoscoRoute: FaleConoscoRoute,
+  FreteEEntregaRoute: FreteEEntregaRoute,
+  PedidosRoute: PedidosRoute,
+  PixelRoute: PixelRoute,
+  PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  TrocasEDevolucoesRoute: TrocasEDevolucoesRoute,
+  ProdutosSlugRoute: ProdutosSlugRoute,
+  ProdutosIndexRoute: ProdutosIndexRoute,
+  ApiWebhooksHypercashRoute: ApiWebhooksHypercashRoute,
+  ApiWebhooksMagicpayRoute: ApiWebhooksMagicpayRoute,
+  ApiWebhooksSagacepayRoute: ApiWebhooksSagacepayRoute,
+  ApiWebhooksZedyRoute: ApiWebhooksZedyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

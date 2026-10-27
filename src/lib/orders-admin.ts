@@ -1,0 +1,102 @@
+import { createServerFn } from "@tanstack/react-start";
+import { getCookie } from "@tanstack/react-start/server";
+
+import { isSingleSize } from "@/lib/format";
+import { getPixelAuthState } from "@/lib/pixel-settings";
+import { isValidPixelSessionToken, PIXEL_SESSION_COOKIE } from "@/lib/pixel-session";
+import { getSupabaseAdmin, type SagacepayOrderItem } from "@/lib/supabase-admin";
+import type { TrackingParameters } from "@/lib/utm";
+
+function requireAdmin() {
+  const admin = getSupabaseAdmin();
+  if (!admin) throw new Error("Banco não configurado");
+  return admin;
+}
+
+async function requireSession() {
+  const token = getCookie(PIXEL_SESSION_COOKIE);
+  const valid = await isValidPixelSessionToken(token);
+  if (!valid) throw new Error("unauthorized");
+}
+
+export const getOrdersAuthState = createServerFn({ method: "GET" }).handler(async () => {
+  return getPixelAuthState();
+});
+
+export interface OrderListItem {
+  id: string;
+  status: string;
+  amount: number;
+  customerName: string;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  customerDocument: string;
+  address: string;
+  items: string[];
+  paidAt: string | null;
+  dispatchedAt: string | null;
+  createdAt: string;
+  failureReason: string | null;
+  /** Pedido de Pix sempre grava o código Pix; o de cartão grava null. */
+  paymentMethod: "pix" | "card";
+  fromTiktok: boolean;
+}
+
+export const listOrders = createServerFn({ method: "GET" }).handler(
+  async (): Promise<OrderListItem[]> => {
+    await requireSession();
+    const columns =
+      "id, status, amount, customer_name, customer_phone, customer_email, customer_document, address_cep, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, items, pix_code, paid_at, dispatched_at, created_at";
+    const admin = requireAdmin();
+    const fetchOrders = async (select: string) =>
+      (await admin
+        .from("sagacepay_orders")
+        .select(select)
+        .order("created_at", { ascending: false })) as unknown as {
+        data: Record<string, unknown>[] | null;
+        error: unknown;
+      };
+    let result = await fetchOrders(`${columns}, failure_reason, tracking_parameters`);
+    if (result.error) result = await fetchOrders(`${columns}, failure_reason`);
+    if (result.error) result = await fetchOrders(columns);
+    const { data, error } = result;
+    if (error || !data) return [];
+
+    return data.map((row) => ({
+      id: row["id"] as string,
+      status: row["status"] as string,
+      amount: row["amount"] as number,
+      customerName: row["customer_name"] as string,
+      customerPhone: row["customer_phone"] as string | null,
+      customerEmail: row["customer_email"] as string | null,
+      customerDocument: row["customer_document"] as string,
+      address: `${row["address_street"]}, ${row["address_number"]}${
+        row["address_complement"] ? ` - ${row["address_complement"]}` : ""
+      } — ${row["address_neighborhood"]}, ${row["address_city"]}/${row["address_state"]} — CEP ${row["address_cep"]}`,
+      items: (row["items"] as SagacepayOrderItem[]).map(
+        (item) =>
+          `${item.title} × ${item.quantity}${!isSingleSize(item.size) ? ` (tam. ${item.size})` : ""}`,
+      ),
+      paidAt: row["paid_at"] as string | null,
+      dispatchedAt: row["dispatched_at"] as string | null,
+      createdAt: row["created_at"] as string,
+      paymentMethod: row["pix_code"] ? "pix" : "card",
+      failureReason: ((row as Record<string, unknown>)["failure_reason"] as string | null) ?? null,
+      fromTiktok: /tiktok/i.test(
+        (row["tracking_parameters"] as TrackingParameters | null)?.utm_source ?? "",
+      ),
+    }));
+  },
+);
+
+export const markOrderDispatched = createServerFn({ method: "POST" })
+  .validator((input: { orderId: string }) => input)
+  .handler(async ({ data }) => {
+    await requireSession();
+    const { error } = await requireAdmin()
+      .from("sagacepay_orders")
+      .update({ dispatched_at: new Date().toISOString() })
+      .eq("id", data.orderId)
+      .eq("status", "paid");
+    return { ok: !error };
+  });

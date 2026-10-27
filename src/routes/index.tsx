@@ -1,95 +1,115 @@
-import { createFileRoute } from "@tanstack/react-router";
-import hero from "@/assets/hero.jpg";
-import p1 from "@/assets/p1.jpg";
-import p2 from "@/assets/p2.jpg";
-import p3 from "@/assets/p3.jpg";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Sola & Couro — Sapatos masculinos em couro" },
-      { name: "description", content: "Oxfords, loafers, botas e tênis masculinos feitos à mão em couro legítimo." },
-      { property: "og:title", content: "Sola & Couro — Sapatos masculinos" },
-      { property: "og:description", content: "Sapatos masculinos feitos à mão em couro legítimo." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Index,
+import { ProductCard } from "@/components/store/ProductCard";
+import { useCampaignLogo } from "@/lib/campaign";
+import { getPageNumbers } from "@/lib/pagination";
+import { applyShowcaseSubstitutions, filterProducts } from "@/lib/products";
+import { cn } from "@/lib/utils";
+
+const searchSchema = z.object({
+  pagina: z.coerce.number().int().positive().optional(),
 });
 
-const products = [
-  { img: p1, name: "Chelsea Noir", cat: "Botas", price: "R$ 689" },
-  { img: p2, name: "Loafer Caramelo", cat: "Mocassins", price: "R$ 549" },
-  { img: p3, name: "Court Branco", cat: "Tênis", price: "R$ 459" },
-];
+export const Route = createFileRoute("/")({
+  validateSearch: searchSchema,
+  head: () => ({
+    meta: [
+      { title: "Outlet" },
+      {
+        name: "description",
+        content: "Calçados e artigos de couro Ferracini com preços de outlet.",
+      },
+    ],
+  }),
+  component: Home,
+});
 
-function Index() {
+const PAGE_SIZE = 20;
+
+const filtros = [{ rotulo: "Outlet", search: {} }];
+
+function Home() {
+  const search = Route.useSearch();
+  const showCampaignLogo = useCampaignLogo();
+  const all = filterProducts({});
+  const totalPages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
+  const page = Math.min(Math.max(search.pagina ?? 1, 1), totalPages);
+  const vitrine = (page === 1 ? applyShowcaseSubstitutions(all) : all).slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between px-6 py-5 md:px-12">
-        <span className="font-display text-2xl tracking-tight">Sola &amp; Couro</span>
-        <nav className="hidden gap-8 text-sm uppercase tracking-widest md:flex">
-          <a href="#colecao">Coleção</a>
-          <a href="#historia">Ateliê</a>
-          <a href="#contato">Contato</a>
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {filtros.map((filtro) => (
+          <Link
+            key={filtro.rotulo}
+            to="/produtos"
+            search={filtro.search}
+            className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary hover:text-primary"
+          >
+            {filtro.rotulo}
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
+        {vitrine.map((product) => (
+          <ProductCard key={product.slug} product={product} showBrand={showCampaignLogo} />
+        ))}
+      </div>
+
+      {totalPages > 1 ? (
+        <nav
+          aria-label="Paginação"
+          className="mt-8 flex flex-wrap items-center justify-center gap-1 text-sm"
+        >
+          <Link
+            to="/"
+            search={{ pagina: page - 1 }}
+            aria-disabled={page <= 1}
+            className={cn(
+              "rounded-md px-3 py-1.5 font-medium transition-colors",
+              page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-secondary",
+            )}
+          >
+            Anterior
+          </Link>
+          {getPageNumbers(page, totalPages).map((p, index) =>
+            p === "..." ? (
+              <span key={`ellipsis-${index}`} className="px-1.5 text-muted-foreground">
+                …
+              </span>
+            ) : (
+              <Link
+                key={p}
+                to="/"
+                search={{ pagina: p }}
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full font-medium hover:bg-secondary",
+                  p === page &&
+                    "border-2 border-primary font-bold text-primary hover:bg-transparent",
+                )}
+              >
+                {p}
+              </Link>
+            ),
+          )}
+          <Link
+            to="/"
+            search={{ pagina: page + 1 }}
+            aria-disabled={page >= totalPages}
+            className={cn(
+              "rounded-md px-3 py-1.5 font-medium transition-colors",
+              page >= totalPages ? "pointer-events-none opacity-40" : "hover:bg-secondary",
+            )}
+          >
+            Próxima
+          </Link>
         </nav>
-        <span className="text-sm">Sacola (0)</span>
-      </header>
-
-      <section className="relative mx-4 overflow-hidden rounded-sm bg-ink text-ink-foreground md:mx-12">
-        <img src={hero} alt="Oxford de couro marrom" width={1600} height={1008} className="h-[78vh] w-full object-cover opacity-80" />
-        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16">
-          <p className="mb-4 text-xs uppercase tracking-[0.3em] text-cognac">Coleção Outono 2026</p>
-          <h1 className="max-w-2xl text-5xl leading-[1.05] md:text-7xl">Feito para durar a vida inteira.</h1>
-          <a href="#colecao" className="mt-8 w-fit border border-ink-foreground px-8 py-3 text-sm uppercase tracking-widest transition hover:bg-ink-foreground hover:text-ink">
-            Ver coleção
-          </a>
-        </div>
-      </section>
-
-      <section id="colecao" className="px-6 py-24 md:px-12">
-        <div className="mb-12 flex items-end justify-between">
-          <h2 className="text-4xl md:text-5xl">Mais desejados</h2>
-          <span className="text-sm uppercase tracking-widest text-muted-foreground">Ver todos →</span>
-        </div>
-        <div className="grid gap-8 md:grid-cols-3">
-          {products.map((p) => (
-            <article key={p.name} className="group cursor-pointer">
-              <div className="overflow-hidden bg-card">
-                <img src={p.img} alt={p.name} loading="lazy" width={800} height={1008} className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-105" />
-              </div>
-              <div className="mt-4 flex justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">{p.cat}</p>
-                  <h3 className="text-xl">{p.name}</h3>
-                </div>
-                <p className="font-medium">{p.price}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="historia" className="grid gap-12 bg-ink px-6 py-24 text-ink-foreground md:grid-cols-2 md:px-12">
-        <h2 className="text-4xl leading-tight md:text-5xl">Couro legítimo, costura à mão, desde 1987.</h2>
-        <div className="space-y-6 text-ink-foreground/75">
-          <p>Cada par passa por mais de 120 etapas no nosso ateliê em Franca, a capital brasileira do calçado.</p>
-          <div className="grid grid-cols-3 gap-6 pt-6">
-            {[["120+", "etapas"], ["2 anos", "de garantia"], ["Frete", "grátis"]].map(([a, b]) => (
-              <div key={b}>
-                <p className="font-display text-3xl text-cognac">{a}</p>
-                <p className="text-sm">{b}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <footer id="contato" className="flex flex-col justify-between gap-4 px-6 py-10 text-sm text-muted-foreground md:flex-row md:px-12">
-        <span className="font-display text-lg text-foreground">Sola &amp; Couro</span>
-        <span>contato@solaecouro.com.br · Franca, SP</span>
-      </footer>
+      ) : null}
     </div>
   );
 }
