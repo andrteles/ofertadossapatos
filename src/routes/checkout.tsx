@@ -613,11 +613,6 @@ function trackCardPurchase(orderId: string, amount: number, snapshot: OrderSnaps
     price: item.price,
   }));
   trackPixelEvent("CompletePayment", purchaseEventId, { value: amount, contents });
-  trackMetaPixelEvent("Purchase", purchaseEventId, {
-    value: amount,
-    contentIds: snapItems.map((item) => item.slug ?? item.title),
-    numItems: snapItems.reduce((sum, item) => sum + item.quantity, 0),
-  });
   trackTikTokEvent({
     data: {
       event: "CompletePayment",
@@ -1253,11 +1248,6 @@ function CustomerForm({
     const purchaseEventId = `purchase-${result.orderId}`;
     const contents = cartContents();
     trackPixelEvent("CompletePayment", purchaseEventId, { value: result.amount, contents });
-    trackMetaPixelEvent("Purchase", purchaseEventId, {
-      value: result.amount,
-      contentIds: items.map((item) => item.slug),
-      numItems: items.reduce((sum, item) => sum + item.quantity, 0),
-    });
     trackTikTokEvent({
       data: {
         event: "CompletePayment",

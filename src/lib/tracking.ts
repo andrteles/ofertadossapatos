@@ -79,7 +79,7 @@ export function trackPixelEvent(
   );
 }
 
-type MetaBrowserEvent = "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase";
+type MetaBrowserEvent = "ViewContent" | "AddToCart" | "InitiateCheckout";
 
 /** Dispara o evento no Pixel da Meta (window.fbq) que já vem embutido no script colado em
  * "Pixel da Utmify". Um evento explícito como este sempre tem prioridade sobre a detecção
