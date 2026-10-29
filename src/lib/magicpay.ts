@@ -4,9 +4,11 @@ import { sendUtmifyOrder } from "@/lib/utmify";
 const MAGICPAY_API_BASE = "https://api.dashboardmagicpay.com/v1";
 const MAGICPAY_ID_PREFIX = "mp-";
 
-export function getPixGateway(): "magicpay" | "sagacepay" | null {
+export function getPixGateway(): "magicpay" | "umbrellapag" | "sagacepay" | null {
   const gateway = process.env["PIX_GATEWAY"]?.trim().toLowerCase();
-  return gateway === "magicpay" || gateway === "sagacepay" ? gateway : null;
+  return gateway === "magicpay" || gateway === "umbrellapag" || gateway === "sagacepay"
+    ? gateway
+    : null;
 }
 
 export function isMagicpayOrderId(orderId: string): boolean {
@@ -156,7 +158,7 @@ export async function fetchMagicpayTransaction(id: string): Promise<MagicpayTran
 const REFUSED = new Set(["refused", "cancelled", "canceled"]);
 const REFUNDED = new Set(["refunded", "chargeback"]);
 
-async function updateOrderStatus(
+export async function updateOrderStatus(
   orderId: string,
   from: string,
   to: string,

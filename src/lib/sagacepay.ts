@@ -8,6 +8,12 @@ import {
   isMagicpayOrderId,
   getPixGateway,
 } from "@/lib/magicpay";
+import {
+  applyUmbrellapagStatus,
+  createUmbrellapagPix,
+  fetchUmbrellapagTransaction,
+  isUmbrellapagOrderId,
+} from "@/lib/umbrellapag";
 import { getProductBySlug } from "@/lib/products";
 import { sendUtmifyOrder } from "@/lib/utmify";
 import type { TrackingParameters } from "@/lib/utm";
@@ -178,30 +184,36 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
 
     const externalId = crypto.randomUUID();
 
+    const pixInput = {
+      externalId,
+      amount,
+      customer: {
+        name: data.customer.name.trim(),
+        email: data.customer.email.trim(),
+        phone: onlyDigits(data.customer.phone),
+        document,
+      },
+      address: {
+        cep,
+        street: data.address.street.trim(),
+        number: data.address.number.trim(),
+        complement: data.address.complement.trim(),
+        neighborhood: data.address.neighborhood.trim(),
+        city: data.address.city.trim(),
+        state,
+      },
+      items,
+      host: getRequestHeader("x-forwarded-host") || getRequestHeader("host"),
+      ip: getRequestHeader("cf-connecting-ip") || getRequestIP({ xForwardedFor: true }),
+    };
+
     let sale: SagacepaySaleResponse;
     if (gateway === "magicpay") {
-      const created = await createMagicpayPix({
-        externalId,
-        amount,
-        customer: {
-          name: data.customer.name.trim(),
-          email: data.customer.email.trim(),
-          phone: onlyDigits(data.customer.phone),
-          document,
-        },
-        address: {
-          cep,
-          street: data.address.street.trim(),
-          number: data.address.number.trim(),
-          complement: data.address.complement.trim(),
-          neighborhood: data.address.neighborhood.trim(),
-          city: data.address.city.trim(),
-          state,
-        },
-        items,
-        host: getRequestHeader("x-forwarded-host") || getRequestHeader("host"),
-        ip: getRequestHeader("cf-connecting-ip") || getRequestIP({ xForwardedFor: true }),
-      });
+      const created = await createMagicpayPix(pixInput);
+      if (!created.ok) return created;
+      sale = created.sale;
+    } else if (gateway === "umbrellapag") {
+      const created = await createUmbrellapagPix(pixInput);
       if (!created.ok) return created;
       sale = created.sale;
     } else {
@@ -330,6 +342,16 @@ export const getOrderStatus = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .single();
     if (row?.status !== "pending") return { status: row?.status ?? "unknown" };
+
+    if (isUmbrellapagOrderId(data.orderId)) {
+      try {
+        const tx = await fetchUmbrellapagTransaction(data.orderId);
+        if (tx) return { status: await applyUmbrellapagStatus(tx) };
+      } catch (error) {
+        console.error("UmbrellaPag consulta de status falhou:", error);
+      }
+      return { status: row?.status ?? "unknown" };
+    }
 
     if (isMagicpayOrderId(data.orderId)) {
       try {

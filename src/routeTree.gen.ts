@@ -22,6 +22,7 @@ import { Route as ProdutosSlugRouteImport } from './routes/produtos/$slug'
 import { Route as ApiWebhooksHypercashRouteImport } from './routes/api/webhooks/hypercash'
 import { Route as ApiWebhooksMagicpayRouteImport } from './routes/api/webhooks/magicpay'
 import { Route as ApiWebhooksSagacepayRouteImport } from './routes/api/webhooks/sagacepay'
+import { Route as ApiWebhooksUmbrellapagRouteImport } from './routes/api/webhooks/umbrellapag'
 import { Route as ApiWebhooksZedyRouteImport } from './routes/api/webhooks/zedy'
 
 const IndexRoute = IndexRouteImport.update({
@@ -89,6 +90,11 @@ const ApiWebhooksSagacepayRoute = ApiWebhooksSagacepayRouteImport.update({
   path: '/api/webhooks/sagacepay',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksUmbrellapagRoute = ApiWebhooksUmbrellapagRouteImport.update({
+  id: '/api/webhooks/umbrellapag',
+  path: '/api/webhooks/umbrellapag',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksZedyRoute = ApiWebhooksZedyRouteImport.update({
   id: '/api/webhooks/zedy',
   path: '/api/webhooks/zedy',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
   '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
   '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
+  '/api/webhooks/umbrellapag': typeof ApiWebhooksUmbrellapagRoute
   '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
 export interface FileRoutesByTo {
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
   '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
   '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
+  '/api/webhooks/umbrellapag': typeof ApiWebhooksUmbrellapagRoute
   '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
 export interface FileRoutesById {
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/api/webhooks/hypercash': typeof ApiWebhooksHypercashRoute
   '/api/webhooks/magicpay': typeof ApiWebhooksMagicpayRoute
   '/api/webhooks/sagacepay': typeof ApiWebhooksSagacepayRoute
+  '/api/webhooks/umbrellapag': typeof ApiWebhooksUmbrellapagRoute
   '/api/webhooks/zedy': typeof ApiWebhooksZedyRoute
 }
 export interface FileRouteTypes {
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/hypercash'
     | '/api/webhooks/magicpay'
     | '/api/webhooks/sagacepay'
+    | '/api/webhooks/umbrellapag'
     | '/api/webhooks/zedy'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/hypercash'
     | '/api/webhooks/magicpay'
     | '/api/webhooks/sagacepay'
+    | '/api/webhooks/umbrellapag'
     | '/api/webhooks/zedy'
   id:
     | '__root__'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/hypercash'
     | '/api/webhooks/magicpay'
     | '/api/webhooks/sagacepay'
+    | '/api/webhooks/umbrellapag'
     | '/api/webhooks/zedy'
   fileRoutesById: FileRoutesById
 }
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   ApiWebhooksHypercashRoute: typeof ApiWebhooksHypercashRoute
   ApiWebhooksMagicpayRoute: typeof ApiWebhooksMagicpayRoute
   ApiWebhooksSagacepayRoute: typeof ApiWebhooksSagacepayRoute
+  ApiWebhooksUmbrellapagRoute: typeof ApiWebhooksUmbrellapagRoute
   ApiWebhooksZedyRoute: typeof ApiWebhooksZedyRoute
 }
 
@@ -305,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksSagacepayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/umbrellapag': {
+      id: '/api/webhooks/umbrellapag'
+      path: '/api/webhooks/umbrellapag'
+      fullPath: '/api/webhooks/umbrellapag'
+      preLoaderRoute: typeof ApiWebhooksUmbrellapagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/zedy': {
       id: '/api/webhooks/zedy'
       path: '/api/webhooks/zedy'
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksHypercashRoute: ApiWebhooksHypercashRoute,
   ApiWebhooksMagicpayRoute: ApiWebhooksMagicpayRoute,
   ApiWebhooksSagacepayRoute: ApiWebhooksSagacepayRoute,
+  ApiWebhooksUmbrellapagRoute: ApiWebhooksUmbrellapagRoute,
   ApiWebhooksZedyRoute: ApiWebhooksZedyRoute,
 }
 export const routeTree = rootRouteImport
